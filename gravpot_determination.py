@@ -1,7 +1,7 @@
 #jax bisher nur für CPU intslliert (pip install -U "jax[cpu]")
 import jax.numpy as jnp
 import jax.lax as lax
-from jax import jit
+from jax import jit, vmap
 from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
@@ -45,8 +45,8 @@ params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
 
 #numerische Lösung (Optimierung?)
 uz = []
-dz = 1
-n = 1000
+dz = 10
+n = 120
 for i in range(n):
     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
     uz.append(u0)
@@ -80,9 +80,27 @@ ax[1].grid()
 fig.tight_layout()
 
 #Berechnung des tracer density drop off
-#Hier muss definitiv optimiert werden
-from scipy.integrate import trapezoid as int
+#Hier muss definitiv optimiert werden: die Schleife ist super langsam
+i1 = 20
+i2 = 120
 
-# vdfo_norm_calc = jnp.vstack([(sigma_sq[i]/sigma_sq[0])**(-1) * \
-#                 jnp.exp(-int(1/sigma_sq[:i] * jnp.array(uz)[:i,1], dx=dz)) for i in range(n)])
+sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0))**(2) for i in range(i1,i2)])
+exp_int = [jnp.exp(-jnp.sum(1/sigma(z0+i1*dz) * jnp.array(uz)[:i1,1] * dz))]
+for i in range(i1+1, i2):
+    exp_int.append(exp_int[-1]*jnp.exp(-1/sigma(z0+i*dz) * jnp.array(uz)[i,1] * dz))
+
+vdfo_norm_calc = jnp.multiply(sigma_sq_norm, jnp.array(exp_int))
+
+fig, ax = plt.subplots(figsize=(20,10))
+ax.set_xlabel('z/pc')
+ax.set_yscale('log')
+ax.set_ylabel('$\\nu / \\nu_0 $')
+ax.scatter([z0+i*dz for i in range(i1,i2)], [vdfo_norm_calc], marker='o')
+ax.grid()
+fig.tight_layout()
+
+
+# vdfo_norm_calc = jnp.vstack([(sigma(200+i*dz)/sigma(z0))**(-2) * \
+#                 jnp.exp(-jnp.sum(1/sigma(200+i*dz) * jnp.array(uz)[:200+i,1] * dz)) for i in range(n-200)])
+#                 #welche in Tab. 1 sind K dwarfs
 # print(vdfo_norm_calc)
