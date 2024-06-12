@@ -65,7 +65,7 @@ def vdfo_norm(z):
     return 10**(0.57 + -1.63*z/1000) #z in pc
 
 def sigma(z):
-    return 17 + 85*z/1000 #z in pc, sigma in km/s
+    return 17 + 17*z/1000 #z in pc, sigma in km/s
 
 fig, ax = plt.subplots(1,2, figsize=(20,10))
 ax[0].set_xlabel('z/pc')
@@ -85,11 +85,11 @@ i1 = 20
 i2 = 120
 
 sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0))**(2) for i in range(i1,i2)])
-exp_int = [jnp.exp(-jnp.sum(1/sigma(z0+i1*dz) * jnp.array(uz)[:i1,1] * dz))]
+exp_int = [jnp.exp(-jnp.sum(1/sigma(jnp.array([z0+i*dz for i in range(i1)])) * jnp.array(uz)[:i1,1] * dz))]
 for i in range(i1+1, i2):
     exp_int.append(exp_int[-1]*jnp.exp(-1/sigma(z0+i*dz) * jnp.array(uz)[i,1] * dz))
 
-vdfo_norm_calc = jnp.multiply(sigma_sq_norm, jnp.array(exp_int))
+vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
 
 fig, ax = plt.subplots(figsize=(20,10))
 ax.set_xlabel('z/pc')
