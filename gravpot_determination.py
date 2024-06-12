@@ -30,18 +30,18 @@ def rk4_step(roh_dm, params, z0, u0, dz, f):
     u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
     return u1
 
-#Formulierung des Anfangswertproblems
+#Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
 f = lambda roh_dm, params, z, u: jnp.array([u[1], \
-            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1])) + roh_dm)])
+            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
 z0 = 0.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 roh_dm = 0.025 #M_sun/pc^3
 params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
                     [0.0009, 40.], [0.0006, 20.], [0.0031, 7.5], \
                     [0.0015, 10.5], [0.0020, 14.], [0.0022, 18.], \
-                    [0.007, 18.5], [0.0135, 20.], [0.006, 20.], \
-                    [0.002, 37.], [0.0035, 37.], [0.0001, 100.]]) 
-                                                        #mu(0) in M_sun/pc^3, sigma(0)^2 in km^2/s^2
+                    [0.007, 18.5], [0.0135, 18.5], [0.006, 20.], \
+                    [0.002, 20.], [0.0035, 37.], [0.0001, 100.]]) 
+                                                        #mu(0) ??? in M_sun/pc^3, sigma(0) in km/s
 
 #numerische Lösung (Optimierung?)
 uz = []
