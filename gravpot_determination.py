@@ -59,6 +59,30 @@ ax1.set_ylabel('$\Phi / (km/s)^2$')
 ax1.scatter([z0+i*dz for i in range(n)], [u[0] for u in uz], marker='o')
 ax1.grid()
 fig.tight_layout()
-plt.legend()
 
+#mock data: sekante in Figur 5
+def vdfo_norm(z):
+    return 10**(0.57 + -1.63*z/1000) #z in pc
 
+def sigma(z):
+    return 17 + 85*z/1000 #z in pc, sigma in km/s
+
+fig, ax = plt.subplots(1,2, figsize=(20,10))
+ax[0].set_xlabel('z/pc')
+ax[0].set_yscale('log')
+ax[0].set_ylabel('$\\nu / \\nu_0 $')
+ax[0].scatter([100+i*dz for i in range(n)], [vdfo_norm(100+i*dz) for i in range(n)], marker='o')
+ax[0].grid()
+ax[1].set_xlabel('z/pc')
+ax[1].set_ylabel('$\sigma_z / (km/s)$')
+ax[1].scatter([100+i*dz for i in range(n)], [sigma(100+i*dz) for i in range(n)], marker='o')
+ax[1].grid()
+fig.tight_layout()
+
+#Berechnung des tracer density drop off
+#Hier muss definitiv optimiert werden
+from scipy.integrate import trapezoid as int
+
+# vdfo_norm_calc = jnp.vstack([(sigma_sq[i]/sigma_sq[0])**(-1) * \
+#                 jnp.exp(-int(1/sigma_sq[:i] * jnp.array(uz)[:i,1], dx=dz)) for i in range(n)])
+# print(vdfo_norm_calc)
