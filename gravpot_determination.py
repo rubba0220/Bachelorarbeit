@@ -45,8 +45,8 @@ params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
 
 #numerische Lösung (Optimierung?)
 uz = []
-dz = 10
-n = 120
+dz = 5
+n = 240
 for i in range(n):
     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
     uz.append(u0)
@@ -65,11 +65,11 @@ def vdfo_norm(z):
     return 10**(0.57 + -1.63*z/1000) #z in pc
 
 def sigma(z):
-    return 17 + 17*z/1000 #z in pc, sigma in km/s
+    return 20 + 17*z/1000 #z in pc, sigma in km/s
 
 fig, ax = plt.subplots(1,2, figsize=(20,10))
 ax[0].set_xlabel('z/pc')
-ax[0].set_yscale('log')
+#ax[0].set_yscale('log')
 ax[0].set_ylabel('$\\nu / \\nu(z_0) $')
 ax[0].scatter([100+i*10 for i in range(100)], [vdfo_norm(100+i*10) for i in range(100)], marker='o')
 ax[0].grid()
@@ -81,19 +81,25 @@ fig.tight_layout()
 
 #Berechnung des tracer density drop off
 #Hier muss definitiv optimiert werden: die Schleife ist super langsam
-i1 = 20
-i2 = 120
+i1 = int(200/1200 * n)
+i2 = n
+i3 = int(100/1200 * n)
 
-sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0))**(2) for i in range(i1,i2)])
-exp_int = [jnp.exp(-jnp.sum(1/sigma(jnp.array([z0+i*dz for i in range(i1)])) * jnp.array(uz)[:i1,1] * dz))]
+sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+exp_int = [jnp.exp(-jnp.sum(\
+            sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
+            * jnp.array(uz)[i3:i1,1] * dz))]
 for i in range(i1+1, i2):
-    exp_int.append(exp_int[-1]*jnp.exp(-1/sigma(z0+i*dz) * jnp.array(uz)[i,1] * dz))
+    exp_int.append(exp_int[-1] \
+                   *jnp.exp( \
+                    -sigma(z0+i*dz)**(-2) \
+                    * jnp.array(uz)[i,1] * dz))
 
 vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
 
 fig, ax = plt.subplots(figsize=(20,10))
 ax.set_xlabel('z/pc')
-ax.set_yscale('log')
+#ax.set_yscale('log')
 ax.set_ylabel('$\\nu / \\nu_0 $')
 ax.scatter([z0+i*dz for i in range(i1,i2)], [vdfo_norm_calc], marker='o')
 ax.grid()
