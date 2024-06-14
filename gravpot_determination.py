@@ -5,6 +5,7 @@ from jax import jit, vmap
 from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
+import time
 
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
@@ -45,8 +46,8 @@ params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
 
 #numerische Lösung (Optimierung?)
 uz = []
-dz = 5
-n = 240
+dz = 10
+n = 120
 for i in range(n):
     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
     uz.append(u0)
@@ -85,17 +86,61 @@ i1 = int(200/1200 * n)
 i2 = n
 i3 = int(100/1200 * n)
 
+start_time = time.time()
+
+# @partial(jit, static_argnames=['i1', 'i2', 'i3'])
+# def calculate_vdfo_norm_calc(i1, i2, i3, dz, z0, uz):
+#     sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+#     exp_int = [jnp.exp(-jnp.sum(sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) * jnp.array(uz)[i3:i1,1] * dz))]
+#     for i in range(i1+1, i2):
+#         exp_int.append(exp_int[-1] *jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz))
+#     vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
+#     return vdfo_norm_calc
+
+# vdfo_norm_calc = calculate_vdfo_norm_calc(i1, i2, i3, dz, z0, uz)
+
+
+
+# sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+
+# exp_int = jnp.zeros(i2-i1)
+# exp_int = exp_int.at[0].set(jnp.exp(-jnp.sum(sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) * jnp.array(uz)[i3:i1,1] * dz)))
+
+# def exp_int_step(i, [exp_int, uz, dz]):
+#     return [exp_int.at[i].set(exp_int[i-1] * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)), uz, dz]
+
+# lax.fori_loop(1, i2-i1, exp_int_step, [exp_int, uz, dz])
+
+# vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
+
+
+
+# sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+# exp_int = [jnp.exp(-jnp.sum(\
+#             sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
+#             * jnp.array(uz)[i3:i1,1] * dz))]
+# for i in range(i1+1, i2):
+#     exp_int.append(exp_int[-1] \
+#                    *jnp.exp( \
+#                     -sigma(z0+i*dz)**(-2) \
+#                     * jnp.array(uz)[i,1] * dz))
+
+
 sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
-exp_int = [jnp.exp(-jnp.sum(\
+exp_int = jnp.exp(-jnp.sum(\
             sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
-            * jnp.array(uz)[i3:i1,1] * dz))]
-for i in range(i1+1, i2):
-    exp_int.append(exp_int[-1] \
-                   *jnp.exp( \
-                    -sigma(z0+i*dz)**(-2) \
-                    * jnp.array(uz)[i,1] * dz))
+            * jnp.array(uz)[i3:i1,1] * dz))
+
+def exp_int_step(exp_int, i):
+    return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
+
+lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
 
 vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
+
+end_time = time.time()
+execution_time = end_time - start_time
+print("Execution time:", execution_time, "seconds")
 
 fig, ax = plt.subplots(figsize=(20,10))
 ax.set_xlabel('z/pc')
