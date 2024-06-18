@@ -57,29 +57,64 @@ start_time = time.time()
 #     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
 #     uz.append(u0)
 
+
+
 # #neu mit lax.scan
 # def rk4_step_scan(u, i):
 #     return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
 #         rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
 
-# uz = u0
+# _, uz = lax.scan(rk4_step_scan, u0, jnp.arange(0, n*dz, dz))
 
-# lax.scan(rk4_step_scan, uz, jnp.arange(0, n*dz, dz))
 
-# print(uz)
+
+#neu mit diffrax
+from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
+
+vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+term = ODETerm(vector_field)
+solver = Dopri5()
+saveat = SaveAt(ts=jnp.linspace(0, 1200, n))
+stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
+
+sol = diffeqsolve(term, solver, t0=0, t1=1200, dt0=dz, y0=u0,
+                    args=(roh_dm, params),
+                  saveat=saveat,
+                  stepsize_controller=stepsize_controller)
+
+zs = sol.ts
+uz = sol.ys
 
 
 
 # #neu mit diffrax
-# from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
+# from diffrax import diffeqsolve, Tsit5, ODETerm, SaveAt, PIDController
 
 # vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
 # term = ODETerm(vector_field)
-# solver = Dopri5()
+# solver = Tsit5()
 # saveat = SaveAt(ts=jnp.linspace(0, 1200, n))
 # stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
 
-# sol = diffeqsolve(term, solver, t0=0, t1=1200, dt0=dz, y0=u0,
+# sol = diffeqsolve(term, solver, t0=0, t1=1200, dt0=dz*0.1, y0=u0,
+#                     args=(roh_dm, params),
+#                   saveat=saveat,
+#                   stepsize_controller=stepsize_controller)
+
+# zs = sol.ts
+# uz = sol.ys
+
+
+# #neu mit diffrax
+# from diffrax import diffeqsolve, Dopri8, ODETerm, SaveAt, PIDController
+
+# vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+# term = ODETerm(vector_field)
+# solver = Dopri8()
+# saveat = SaveAt(ts=jnp.linspace(0, 1200, n))
+# stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
+
+# sol = diffeqsolve(term, solver, t0=0, t1=1200, dt0=dz*0.1, y0=u0,
 #                     args=(roh_dm, params),
 #                   saveat=saveat,
 #                   stepsize_controller=stepsize_controller)
