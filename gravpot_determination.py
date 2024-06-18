@@ -46,11 +46,43 @@ params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
 
 #numerische Lösung (Optimierung?)
 uz = []
-dz = 10
-n = 120
-for i in range(n):
-    u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
-    uz.append(u0)
+dz = 0.1
+n = 12000
+start_time = time.time()
+
+
+
+# #alt mit jit(step)
+# for i in range(n):
+#     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
+#     uz.append(u0)
+
+#neu mit lax.scan
+
+
+
+
+# #neu mit diffrax
+# from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
+
+# vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+# term = ODETerm(vector_field)
+# solver = Dopri5()
+# saveat = SaveAt(ts=jnp.linspace(0, 1200, n))
+# stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
+
+# sol = diffeqsolve(term, solver, t0=0, t1=1200, dt0=dz, y0=u0,
+#                     args=(roh_dm, params),
+#                   saveat=saveat,
+#                   stepsize_controller=stepsize_controller)
+
+# zs = sol.ts
+# uz = sol.ys
+
+
+
+end_time = time.time()
+print('Elapsed time: ', end_time - start_time)
 
 #Visualisierung
 fig, ax1 = plt.subplots(figsize=(20,10))
@@ -85,25 +117,25 @@ i1 = int(200/1200 * n)
 i2 = n
 i3 = int(100/1200 * n)
 
-#neu:lax.scan()
-sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
-exp_int = jnp.exp(-jnp.sum(\
-            sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
-            * jnp.array(uz)[i3:i1,1] * dz))
+# #neu:lax.scan()
+# sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+# exp_int = jnp.exp(-jnp.sum(\
+#             sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
+#             * jnp.array(uz)[i3:i1,1] * dz))
 
-def exp_int_step(exp_int, i):
-    return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
-            exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
+# def exp_int_step(exp_int, i):
+#     return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
+#             exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
 
-lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
+# lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
 
-vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
+# vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
 
-#Visualisierung
-fig, ax = plt.subplots(figsize=(20,10))
-ax.set_xlabel('z/pc')
-#ax.set_yscale('log')
-ax.set_ylabel('$\\nu / \\nu_0 $')
-ax.scatter([z0+i*dz for i in range(i1,i2)], [vdfo_norm_calc], marker='o')
-ax.grid()
-fig.tight_layout()
+# #Visualisierung
+# fig, ax = plt.subplots(figsize=(20,10))
+# ax.set_xlabel('z/pc')
+# #ax.set_yscale('log')
+# ax.set_ylabel('$\\nu / \\nu_0 $')
+# ax.scatter([z0+i*dz for i in range(i1,i2)], [vdfo_norm_calc], marker='o')
+# ax.grid()
+# fig.tight_layout()
