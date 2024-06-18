@@ -95,9 +95,9 @@ def exp_int_step(exp_int, i):
     return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
             exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
 
-lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
+carry, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
 
-vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
+vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
 
 #Visualisierung
 fig, ax = plt.subplots(figsize=(20,10))
