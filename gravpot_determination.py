@@ -85,19 +85,6 @@ i1 = int(200/1200 * n)
 i2 = n
 i3 = int(100/1200 * n)
 
-start_time = time.time()
-
-#Alt: unoptimiert
-# sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
-# exp_int = [jnp.exp(-jnp.sum(\
-#             sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
-#             * jnp.array(uz)[i3:i1,1] * dz))]
-# for i in range(i1+1, i2):
-#     exp_int.append(exp_int[-1] \
-#                    *jnp.exp( \
-#                     -sigma(z0+i*dz)**(-2) \
-#                     * jnp.array(uz)[i,1] * dz))
-
 #neu:lax.scan()
 sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
 exp_int = jnp.exp(-jnp.sum(\
@@ -112,10 +99,7 @@ lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
 
 vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int))
 
-end_time = time.time()
-execution_time = end_time - start_time
-print("Execution time:", execution_time, "seconds")
-
+#Visualisierung
 fig, ax = plt.subplots(figsize=(20,10))
 ax.set_xlabel('z/pc')
 #ax.set_yscale('log')
@@ -123,9 +107,3 @@ ax.set_ylabel('$\\nu / \\nu_0 $')
 ax.scatter([z0+i*dz for i in range(i1,i2)], [vdfo_norm_calc], marker='o')
 ax.grid()
 fig.tight_layout()
-
-
-# vdfo_norm_calc = jnp.vstack([(sigma(200+i*dz)/sigma(z0))**(-2) * \
-#                 jnp.exp(-jnp.sum(1/sigma(200+i*dz) * jnp.array(uz)[:200+i,1] * dz)) for i in range(n-200)])
-#                 #welche in Tab. 1 sind K dwarfs
-# print(vdfo_norm_calc)
