@@ -57,8 +57,16 @@ start_time = time.time()
 #     u0 = rk4_step(roh_dm, params, z0+i*dz, u0, dz, f)
 #     uz.append(u0)
 
-#neu mit lax.scan
+# #neu mit lax.scan
+# def rk4_step_scan(u, i):
+#     return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
+#         rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
 
+# uz = u0
+
+# lax.scan(rk4_step_scan, uz, jnp.arange(0, n*dz, dz))
+
+# print(uz)
 
 
 
