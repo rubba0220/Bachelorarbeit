@@ -259,3 +259,71 @@ fig.tight_layout()
 lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
 
+# Now lets run the main inference scheme:
+n_vi_iterations = 6
+delta = 1e-4
+n_samples = 10
+
+key, k_i, k_o = random.split(key, 3)
+# NOTE, changing the number of samples always triggers a resampling even if
+# `resamples=False`, as more samples have to be drawn that did not exist before.
+samples, state = jft.optimize_kl(
+    lh,
+    jft.Vector(lh.init(k_i)),
+    n_total_iterations=n_vi_iterations,
+    n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+    # Source for the stochasticity for sampling
+    key=k_o,
+    # Arguments for the conjugate gradient method used to drawing samples from
+    # an implicit covariance matrix
+    draw_linear_kwargs=dict(
+        cg_name="SL",
+        cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+    ),
+    # Arguements for the minimizer in the nonlinear updating of the samples
+    nonlinearly_update_kwargs=dict(
+        minimize_kwargs=dict(
+            name="SN",
+            xtol=delta,
+            cg_kwargs=dict(name=None),
+            maxiter=5,
+        )
+    ),
+    # Arguments for the minimizer of the KL-divergence cost potential
+    kl_kwargs=dict(
+        minimize_kwargs=dict(
+            name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+        )
+    ),
+    sample_mode="nonlinear_resample",
+    odir="./results_test",
+    resume=False,
+)
+
+# Now the samples-object contains all the abstract parameters that were inferred
+# Reading out the physical input parameter values goes e.g. like this:
+roh1 = jft.mean_and_std(tuple(roh_1(s) for s in samples))
+sigma1 = jft.mean_and_std(tuple(sigma_1(s) for s in samples))
+roh2 = jft.mean_and_std(tuple(roh_2(s) for s in samples))
+sigma2 = jft.mean_and_std(tuple(sigma_2(s) for s in samples))
+rohdm = jft.mean_and_std(tuple(roh_dm(s) for s in samples))
+
+# Please save your results in some way:
+# TODO
+
+print("Inferred values:", "MEAN:", roh1[0], "STD:", roh1[1])
+print("with the true value being:", roh_1(pos_truth))
+print('')
+print("Inferred values:", "MEAN:", sigma1[0], "STD:", sigma1[1])
+print("with the true value being:", sigma_1(pos_truth))
+print('')
+print("Inferred values:", "MEAN:", roh2[0], "STD:", roh2[1])
+print("with the true value being:", roh_2(pos_truth))
+print('')
+print("Inferred values:", "MEAN:", sigma2[0], "STD:", sigma2[1])
+print("with the true value being:", sigma_2(pos_truth))
+print('')
+print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
+print("with the true value being:", roh_dm(pos_truth))
+
+plt.show()
