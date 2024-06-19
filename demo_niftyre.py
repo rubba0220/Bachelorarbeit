@@ -12,7 +12,7 @@ key = random.PRNGKey(seed)
 
 parameter1 = jft.LogNormalPrior(3.0, 1.0, name="p1", shape=(1,))
 parameter2 = jft.NormalPrior(1.0, 0.01, name="p2", shape=(1,))
-parameter3 = jft.UniformPrior(-1.0, 1.0, name="p2", shape=(1,))
+parameter3 = jft.UniformPrior(-1.0, 1.0, name="p3", shape=(1,))
 # ...
 
 
