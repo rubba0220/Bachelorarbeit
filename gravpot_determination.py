@@ -181,16 +181,12 @@ class ForwardModel(jft.Model):
                 return u1
 
             #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
-            f = lambda roh_dm, params, z, u: jnp.array([u[1]*roh_dm/roh_dm, \
+            f = lambda roh_dm, params, z, u: jnp.array([u[1], \
                         4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) \
                           + roh_dm)])
-            
-            ''' wichtige Frage !!!'''
 
             z0 = 0.
-            u0 = jnp.array([0.*roh_dm/roh_dm,0.*roh_dm/roh_dm]) #freie Nullpunktswahl/Symmetrie
-            
-            ''' wichtige Frage !!!'''
+            u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
             #numerische Lösung (Optimierung?)
             dz = 1
@@ -215,9 +211,7 @@ class ForwardModel(jft.Model):
             sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
             exp_int = jnp.exp(-jnp.sum(\
                         sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
-                        * jnp.array(uz)[i3:i1,1] * dz))*roh_dm/roh_dm
-            
-            ''' wichtige Frage !!!'''
+                        * jnp.array(uz)[i3:i1,1] * dz))
 
             def exp_int_step(exp_int, i):
                 return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
