@@ -67,7 +67,7 @@ class ForwardModel(jft.Model):
             z0 = 0.
             u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
-            #numerische Lösung (mittels Dopri5)
+            #numerische Lösung (mittels Dopri5/rk4)
             @partial(jit, static_argnames=['f', 'n']) 
             def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
 
@@ -86,8 +86,29 @@ class ForwardModel(jft.Model):
                 uz = sol.ys
 
                 return uz
+            
+            @partial(jit, static_argnames=['f', 'n']) 
+            def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
+                                                                    
+                # Runge-Kutta 4. Ordnung
+                @partial(jit, static_argnames=['f']) #nötig ??
+                def rk4_step(roh_dm, params, z0, u0, dz, f):
+                    k1 = dz * f(roh_dm, params, z0, u0)
+                    k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
+                    k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
+                    k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
+                    u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+                    return u1
 
-            uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
+                def rk4_step_scan(u, i):
+                    return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
+                        rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
+
+                _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
+
+                return uz
+
+            uz = eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz)
 
             #mock velocity dispersion function
             def sigma(z):
