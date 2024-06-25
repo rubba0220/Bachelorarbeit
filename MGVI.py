@@ -295,8 +295,8 @@ samples, state = jft.optimize_kl(
 # Now the samples-object contains all the abstract parameters that were inferred
 # Reading out the physical input parameter values goes e.g. like this:
 for k in range(15):
-    exec(f'roh_{k+1} = jft.mean_and_std(tuple(roh_{k+1}(s) for s in samples))')
-    exec(f'sigma_{k+1} = jft.mean_and_std(tuple(sigma_{k+1}(s) for s in samples))')
+    exec(f'roh{k+1} = jft.mean_and_std(tuple(roh_{k+1}(s) for s in samples))')
+    exec(f'sigma{k+1} = jft.mean_and_std(tuple(sigma_{k+1}(s) for s in samples))')
 rohdm = jft.mean_and_std(tuple(roh_dm(s) for s in samples))
 
 # Please save your results in some way:
