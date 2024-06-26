@@ -47,8 +47,6 @@ class ForwardModel(jft.Model):
             sol = diffeqsolve(term, solver, t0=0, t1=3, dt0=0.1, y0=1, saveat=saveat,
                             stepsize_controller=stepsize_controller)
 
-            print(sol.ts)  # DeviceArray([0.   , 1.   , 2.   , 3.    ])
-            print(sol.ys)  # DeviceArray([1.   , 0.368, 0.135, 0.0498])
             return sol.ys
 
         return complicated_function(p1, p2, p3)
