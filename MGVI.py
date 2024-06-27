@@ -35,9 +35,6 @@ i3 = int(100/1200 * n)
 
 
 ''' Test des Algorithmus zur MGVI '''
-seed = 42
-key = random.PRNGKey(seed)
-
 rohs = jnp.array([  0.021, 0.016, 0.012, 
                     0.0009, 0.0006, 0.0031, 
                     0.0015, 0.0020, 0.0022, 
@@ -225,6 +222,8 @@ class ForwardModel(jft.Model):
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
+seed = 42
+key = random.PRNGKey(seed)
 
 noise_cov = lambda x: 0.001 * x
 noise_cov_inv = lambda x: 1. / 0.001 * x
@@ -295,21 +294,32 @@ samples, state = jft.optimize_kl(
 # Now the samples-object contains all the abstract parameters that were inferred
 # Reading out the physical input parameter values goes e.g. like this:
 for k in range(15):
-    exec(f'roh{k+1} = jft.mean_and_std(tuple(roh_{k+1}(s) for s in samples))')
-    exec(f'sigma{k+1} = jft.mean_and_std(tuple(sigma_{k+1}(s) for s in samples))')
+        exec(f'roh{k+1} = jft.mean_and_std(tuple(roh_{k+1}(s) for s in samples))')
+        exec(f'sigma{k+1} = jft.mean_and_std(tuple(sigma_{k+1}(s) for s in samples))')
 rohdm = jft.mean_and_std(tuple(roh_dm(s) for s in samples))
 
 # Please save your results in some way:
 # TODO
 
 for k in range(15):
-    exec(f'print("Inferred values:", "MEAN:", roh{k+1}[0], "STD:", roh{k+1}[1])')
-    exec(f'print("with the true value being:", roh_{k+1}(pos_truth))')
-    exec(f'print("Inferred values:", "MEAN:", sigma{k+1}[0], "STD:", sigma{k+1}[1])')
-    exec(f'print("with the true value being:", sigma_{k+1}(pos_truth))')
-    exec(f'print("")')
+    if eval(f'(roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1] > 1.5'):
+        exec(f'print("Inferred values:", "MEAN:", roh{k+1}[0], "STD:", roh{k+1}[1])')
+        exec(f'print("with the true value being:", roh_{k+1}(pos_truth))')
+        exec(f'print("Abweichung: ", (roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1], "STDs")')
+    if eval(f'(sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1] > 1.5'):
+        exec(f'print("Inferred values:", "MEAN:", sigma{k+1}[0], "STD:", sigma{k+1}[1])')
+        exec(f'print("with the true value being:", sigma_{k+1}(pos_truth))')
+        exec(f'print("Abweichung: ", (sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1], "STDs")')
 
-print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
-print("with the true value being:", roh_dm(pos_truth))
+print("")
+
+if (rohdm[0]-roh_dm(pos_truth))/rohdm[1] > 1.5:
+    print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
+    print("with the true value being:", roh_dm(pos_truth))
+    print("Abweichung: ", (rohdm[0]-roh_dm(pos_truth))/rohdm[1], "STDs")
+
+
+print(jnp.mean(jnp.array([roh1[1]/roh1[0], roh2[1]/roh2[0], roh3[1]/roh3[0], roh4[1]/roh4[0], roh5[1]/roh5[0], roh6[1]/roh6[0], roh7[1]/roh7[0], roh8[1]/roh8[0], roh9[1]/roh9[0], roh10[1]/roh10[0], roh11[1]/roh11[0], roh12[1]/roh12[0], roh13[1]/roh13[0], roh14[1]/roh14[0], roh15[1]/roh15[0], rohdm[1]/rohdm[0]])))
+print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos_truth))/roh2[1], (roh3[0]-roh_3(pos_truth))/roh3[1], (roh4[0]-roh_4(pos_truth))/roh4[1], (roh5[0]-roh_5(pos_truth))/roh5[1], (roh6[0]-roh_6(pos_truth))/roh6[1], (roh7[0]-roh_7(pos_truth))/roh7[1], (roh8[0]-roh_8(pos_truth))/roh8[1], (roh9[0]-roh_9(pos_truth))/roh9[1], (roh10[0]-roh_10(pos_truth))/roh10[1], (roh11[0]-roh_11(pos_truth))/roh11[1], (roh12[0]-roh_12(pos_truth))/roh12[1], (roh13[0]-roh_13(pos_truth))/roh13[1], (roh14[0]-roh_14(pos_truth))/roh14[1], (roh15[0]-roh_15(pos_truth))/roh15[1], (rohdm[0]-roh_dm(pos_truth))/rohdm[1]])))
 
 plt.show()
