@@ -7,7 +7,7 @@ from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
-from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
+from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint, ImplicitAdjoint
 
 jax.config.update("jax_enable_x64", True)
 
@@ -81,7 +81,7 @@ class ForwardModel(jft.Model):
                                     args=(roh_dm, params),
                                 saveat=saveat,
                                 stepsize_controller=stepsize_controller)
-
+                                #adjoint=DirectAdjoint/ImplicitAdjoint
                 zs = sol.ts
                 uz = sol.ys
 
