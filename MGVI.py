@@ -7,7 +7,7 @@ from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
-from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
+from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint, adjoint_rms_seminorm
 
 jax.config.update("jax_enable_x64", True)
 
@@ -157,12 +157,15 @@ class ForwardModel(jft.Model):
                 term = ODETerm(vector_field)
                 solver = Dopri5()
                 saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
-                stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
+                stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
+                adjoint = DirectAdjoint()
 
                 sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
                                     args=(roh_dm, params),
                                 saveat=saveat,
-                                stepsize_controller=stepsize_controller)
+                                stepsize_controller=stepsize_controller,
+                                adjoint = adjoint, throw=False)
+                                #max_steps=65536)
 
                 zs = sol.ts
                 uz = sol.ys
