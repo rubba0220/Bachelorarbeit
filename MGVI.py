@@ -7,7 +7,11 @@ from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
-from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint, adjoint_rms_seminorm
+from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint
+
+import time
+
+t0 = time.time()
 
 jax.config.update("jax_enable_x64", True)
 
@@ -32,7 +36,60 @@ i1 = int(200/1200 * n)
 i2 = n
 i3 = int(100/1200 * n)
 
+#Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
+f = lambda roh_dm, params, z, u: jnp.array([u[1], \
+            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
+z0 = 0.
+u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
+#numerische Lösung (mittels Dopri5/rk4)
+@partial(jit, static_argnames=['f', 'n']) 
+def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = ODETerm(vector_field)
+    solver = Dopri5()
+    saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
+    stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = DirectAdjoint()
+
+    sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
+                        args=(roh_dm, params),
+                    saveat=saveat,
+                    stepsize_controller=stepsize_controller,
+                    adjoint = adjoint, throw=False)
+                    #max_steps=65536)
+
+    zs = sol.ts
+    uz = sol.ys
+
+    return uz
+
+@partial(jit, static_argnames=['f', 'n']) 
+def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
+                                                        
+    # Runge-Kutta 4. Ordnung
+    @partial(jit, static_argnames=['f']) #nötig ??
+    def rk4_step(roh_dm, params, z0, u0, dz, f):
+        k1 = dz * f(roh_dm, params, z0, u0)
+        k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
+        k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
+        k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
+        u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        return u1
+
+    def rk4_step_scan(u, i):
+        return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
+            rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
+
+    _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
+
+    return uz
+
+#mock velocity dispersion function
+@jit
+def sigma(z):
+    return 20 + 17*z/1000 #z in pc, sigma in km/s
 
 ''' Test des Algorithmus zur MGVI '''
 rohs = jnp.array([  0.021, 0.016, 0.012, 
@@ -60,8 +117,8 @@ esigmas = jnp.array([   1., 1., 1.,
                         5., 5., 10.])
 
 for k in range(15):
-    exec(f'roh_{k+1} = jft.NormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
-    exec(f'sigma_{k+1} = jft.NormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
+    exec(f'roh_{k+1} = jft.LogNormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
+    exec(f'sigma_{k+1} = jft.LogNormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
 
 roh_dm = jft.UniformPrior(0, 0.2, name="roh_dm", shape=(1,))
 
@@ -73,56 +130,47 @@ class ForwardModel(jft.Model):
         self.roh_dm = roh_dm
 
         super().__init__(
-            init=   self.roh_1.init | self.sigma_1.init | \
-                    self.roh_2.init | self.sigma_2.init | \
-                    self.roh_3.init | self.sigma_3.init | \
-                    self.roh_4.init | self.sigma_4.init | \
-                    self.roh_5.init | self.sigma_5.init | \
-                    self.roh_6.init | self.sigma_6.init | \
-                    self.roh_7.init | self.sigma_7.init | \
-                    self.roh_8.init | self.sigma_8.init | \
-                    self.roh_9.init | self.sigma_9.init | \
-                    self.roh_10.init | self.sigma_10.init | \
-                    self.roh_11.init | self.sigma_11.init | \
-                    self.roh_12.init | self.sigma_12.init | \
-                    self.roh_13.init | self.sigma_13.init | \
-                    self.roh_14.init | self.sigma_14.init | \
-                    self.roh_15.init | self.sigma_15.init | \
-                    self.roh_dm.init
-        )
+            init =   self.roh_1.init | self.sigma_1.init | self.roh_2.init | self.sigma_2.init | \
+                    self.roh_3.init | self.sigma_3.init | self.roh_4.init | self.sigma_4.init | \
+                    self.roh_5.init | self.sigma_5.init | self.roh_6.init | self.sigma_6.init | \
+                    self.roh_7.init | self.sigma_7.init | self.roh_8.init | self.sigma_8.init | \
+                    self.roh_9.init | self.sigma_9.init | self.roh_10.init | self.sigma_10.init | \
+                    self.roh_11.init | self.sigma_11.init | self.roh_12.init | self.sigma_12.init | \
+                    self.roh_13.init | self.sigma_13.init | self.roh_14.init | self.sigma_14.init | \
+                    self.roh_15.init | self.sigma_15.init | self.roh_dm.init)
 
     def __call__(self, x):
-        p1 = self.roh_1(x)
-        p2 = self.sigma_1(x)
-        p3 = self.roh_2(x)
-        p4 = self.sigma_2(x)
-        p5 = self.roh_3(x)
-        p6 = self.sigma_3(x)
-        p7 = self.roh_4(x)
-        p8 = self.sigma_4(x)
-        p9 = self.roh_5(x)
-        p10 = self.sigma_5(x)
-        p11 = self.roh_6(x)
-        p12 = self.sigma_6(x)
-        p13 = self.roh_7(x)
-        p14 = self.sigma_7(x)
-        p15 = self.roh_8(x)
-        p16 = self.sigma_8(x)
-        p17 = self.roh_9(x)
-        p18 = self.sigma_9(x)
-        p19 = self.roh_10(x)
-        p20 = self.sigma_10(x)
-        p21 = self.roh_11(x)
-        p22 = self.sigma_11(x)
-        p23 = self.roh_12(x)
-        p24 = self.sigma_12(x)
-        p25 = self.roh_13(x)
-        p26 = self.sigma_13(x)
-        p27 = self.roh_14(x)
-        p28 = self.sigma_14(x)
-        p29 = self.roh_15(x)
-        p30 = self.sigma_15(x)
-        p31 = self.roh_dm(x)
+        r1 = self.roh_1(x)
+        s1 = self.sigma_1(x)
+        r2 = self.roh_2(x)
+        s2 = self.sigma_2(x)
+        r3 = self.roh_3(x)
+        s3 = self.sigma_3(x)
+        r4 = self.roh_4(x)
+        s4 = self.sigma_4(x)
+        r5 = self.roh_5(x)
+        s5 = self.sigma_5(x)
+        r6 = self.roh_6(x)
+        s6 = self.sigma_6(x)
+        r7 = self.roh_7(x)
+        s7 = self.sigma_7(x)
+        r8 = self.roh_8(x)
+        s8 = self.sigma_8(x)
+        r9 = self.roh_9(x)
+        s9 = self.sigma_9(x)
+        r10 = self.roh_10(x)
+        s10 = self.sigma_10(x)
+        r11 = self.roh_11(x)
+        s11 = self.sigma_11(x)
+        r12 = self.roh_12(x)
+        s12 = self.sigma_12(x)
+        r13 = self.roh_13(x)
+        s13 = self.sigma_13(x)
+        r14 = self.roh_14(x)
+        s14 = self.sigma_14(x)
+        r15 = self.roh_15(x)
+        s15 = self.sigma_15(x)
+        rdm = self.roh_dm(x)
 
         def complicated_function(roh_1, sigma_1, roh_2, sigma_2, 
                                  roh_3, sigma_3, roh_4, sigma_4, 
@@ -143,61 +191,7 @@ class ForwardModel(jft.Model):
                     [roh_15[0], sigma_15[0]]])
             roh_dm = roh_dm[0]
 
-            #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
-            f = lambda roh_dm, params, z, u: jnp.array([u[1], \
-                        4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
-            z0 = 0.
-            u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
-
-            #numerische Lösung (mittels Dopri5/rk4)
-            @partial(jit, static_argnames=['f', 'n']) 
-            def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
-
-                vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
-                term = ODETerm(vector_field)
-                solver = Dopri5()
-                saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
-                stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
-                adjoint = DirectAdjoint()
-
-                sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
-                                    args=(roh_dm, params),
-                                saveat=saveat,
-                                stepsize_controller=stepsize_controller,
-                                adjoint = adjoint, throw=False)
-                                #max_steps=65536)
-
-                zs = sol.ts
-                uz = sol.ys
-
-                return uz
-            
-            @partial(jit, static_argnames=['f', 'n']) 
-            def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
-                                                                    
-                # Runge-Kutta 4. Ordnung
-                @partial(jit, static_argnames=['f']) #nötig ??
-                def rk4_step(roh_dm, params, z0, u0, dz, f):
-                    k1 = dz * f(roh_dm, params, z0, u0)
-                    k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
-                    k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
-                    k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
-                    u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
-                    return u1
-
-                def rk4_step_scan(u, i):
-                    return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
-                        rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
-
-                _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
-
-                return uz
-
-            uz = eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz)
-
-            #mock velocity dispersion function
-            def sigma(z):
-                return 20 + 17*z/1000 #z in pc, sigma in km/s
+            uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
 
             #Berechnung des tracer density drop off
             #neu:lax.scan()
@@ -216,12 +210,14 @@ class ForwardModel(jft.Model):
 
             return vdfo_norm_calc
 
-        return complicated_function(p1, p2, p3, p4, p5, 
-                                    p6, p7, p8, p9, p10, 
-                                    p11, p12, p13, p14, p15, 
-                                    p16, p17, p18, p19, p20,
-                                    p21, p22, p23, p24, p25,
-                                    p26, p27, p28, p29, p30, p31)
+        return complicated_function(r1, s1, r2, s2, 
+                                    r3, s3, r4, s4, 
+                                    r5, s5, r6, s6, 
+                                    r7, s7, r8, s8, 
+                                    r9, s9, r10, s10, 
+                                    r11, s11, r12, s12, 
+                                    r13, s13, r14, s14, 
+                                    r15, s15, rdm)
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
@@ -326,3 +322,7 @@ print(jnp.mean(jnp.array([roh1[1]/roh1[0], roh2[1]/roh2[0], roh3[1]/roh3[0], roh
 print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos_truth))/roh2[1], (roh3[0]-roh_3(pos_truth))/roh3[1], (roh4[0]-roh_4(pos_truth))/roh4[1], (roh5[0]-roh_5(pos_truth))/roh5[1], (roh6[0]-roh_6(pos_truth))/roh6[1], (roh7[0]-roh_7(pos_truth))/roh7[1], (roh8[0]-roh_8(pos_truth))/roh8[1], (roh9[0]-roh_9(pos_truth))/roh9[1], (roh10[0]-roh_10(pos_truth))/roh10[1], (roh11[0]-roh_11(pos_truth))/roh11[1], (roh12[0]-roh_12(pos_truth))/roh12[1], (roh13[0]-roh_13(pos_truth))/roh13[1], (roh14[0]-roh_14(pos_truth))/roh14[1], (roh15[0]-roh_15(pos_truth))/roh15[1], (rohdm[0]-roh_dm(pos_truth))/rohdm[1]])))
 
 plt.show()
+
+t1 = time.time()
+
+print(t1-t0)
