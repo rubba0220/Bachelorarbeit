@@ -35,6 +35,61 @@ i1 = int(200/1200 * n)
 i2 = n
 i3 = int(100/1200 * n)
 
+#Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
+f = lambda roh_dm, params, z, u: jnp.array([u[1], \
+            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
+z0 = 0.
+u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
+
+#numerische Lösung (mittels Dopri5/rk4)
+@partial(jit, static_argnames=['f', 'n']) 
+def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = ODETerm(vector_field)
+    solver = Dopri5()
+    saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
+    stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = DirectAdjoint()
+
+    sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
+                        args=(roh_dm, params),
+                    saveat=saveat,
+                    stepsize_controller=stepsize_controller,
+                    adjoint = adjoint, throw=False)
+                    #max_steps=65536)
+
+    zs = sol.ts
+    uz = sol.ys
+
+    return uz
+
+@partial(jit, static_argnames=['f', 'n']) 
+def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
+                                                        
+    # Runge-Kutta 4. Ordnung
+    @partial(jit, static_argnames=['f']) #nötig ??
+    def rk4_step(roh_dm, params, z0, u0, dz, f):
+        k1 = dz * f(roh_dm, params, z0, u0)
+        k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
+        k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
+        k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
+        u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        return u1
+
+    def rk4_step_scan(u, i):
+        return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
+            rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
+
+    _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
+
+    return uz
+
+#mock velocity dispersion function
+def sigma(z):
+    return 20 + 17*z/1000 #z in pc, sigma in km/s
+
+
 
 
 ''' Test des Algorithmus zur MGVI '''
@@ -138,61 +193,7 @@ class ForwardModel(jft.Model):
                     [roh_15[0], sigma_15[0]]])
             roh_dm = roh_dm[0]
 
-            #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
-            f = lambda roh_dm, params, z, u: jnp.array([u[1], \
-                        4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
-            z0 = 0.
-            u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
-
-            #numerische Lösung (mittels Dopri5/rk4)
-            @partial(jit, static_argnames=['f', 'n']) 
-            def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
-
-                vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
-                term = ODETerm(vector_field)
-                solver = Dopri5()
-                saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
-                stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
-                adjoint = DirectAdjoint()
-
-                sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
-                                    args=(roh_dm, params),
-                                saveat=saveat,
-                                stepsize_controller=stepsize_controller,
-                                adjoint = adjoint, throw=False)
-                                #max_steps=65536)
-
-                zs = sol.ts
-                uz = sol.ys
-
-                return uz
-            
-            @partial(jit, static_argnames=['f', 'n']) 
-            def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
-                                                                    
-                # Runge-Kutta 4. Ordnung
-                @partial(jit, static_argnames=['f']) #nötig ??
-                def rk4_step(roh_dm, params, z0, u0, dz, f):
-                    k1 = dz * f(roh_dm, params, z0, u0)
-                    k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
-                    k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
-                    k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
-                    u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
-                    return u1
-
-                def rk4_step_scan(u, i):
-                    return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
-                        rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
-
-                _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
-
-                return uz
-
-            uz = eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz)
-
-            #mock velocity dispersion function
-            def sigma(z):
-                return 20 + 17*z/1000 #z in pc, sigma in km/s
+            uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
 
             #Berechnung des tracer density drop off
             #neu:lax.scan()
