@@ -89,9 +89,8 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
 def sigma(z):
     return 20 + 17*z/1000 #z in pc, sigma in km/s
 
-
-
-
+#@jit erhöht Dauer auf 174s von 104s (90s mit eigenerSolverV2)
+#funktionen raus verringert zeit für Dopri5 stark
 ''' Test des Algorithmus zur MGVI '''
 rohs = jnp.array([  0.021, 0.016, 0.012, 
                     0.0009, 0.0006, 0.0031, 
