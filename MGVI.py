@@ -10,10 +10,9 @@ import nifty8.re as jft
 from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint
 
 import time
+jax.config.update("jax_enable_x64", True)
 
 t0 = time.time()
-
-jax.config.update("jax_enable_x64", True)
 
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
@@ -69,7 +68,7 @@ def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
 def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
                                                         
     # Runge-Kutta 4. Ordnung
-    @partial(jit, static_argnames=['f']) #nötig ??
+    # @partial(jit, static_argnames=['f']) #nötig ??
     def rk4_step(roh_dm, params, z0, u0, dz, f):
         k1 = dz * f(roh_dm, params, z0, u0)
         k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
@@ -87,9 +86,9 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
     return uz
 
 #mock velocity dispersion function
-@jit
 def sigma(z):
     return 20 + 17*z/1000 #z in pc, sigma in km/s
+
 
 ''' Test des Algorithmus zur MGVI '''
 rohs = jnp.array([  0.021, 0.016, 0.012, 
@@ -196,6 +195,7 @@ class ForwardModel(jft.Model):
             #Berechnung des tracer density drop off
             #neu:lax.scan()
             sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
+            #mit jax array ? 
             exp_int = jnp.exp(-jnp.sum(\
                         sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
                         * jnp.array(uz)[i3:i1,1] * dz))
@@ -324,5 +324,4 @@ print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos
 plt.show()
 
 t1 = time.time()
-
-print(t1-t0)
+print('Time:', t1-t0, 's')
