@@ -7,11 +7,10 @@ from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
-from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint, adjoint_rms_seminorm
+from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint
 import time
 
 t0 = time.time()
-
 
 jax.config.update("jax_enable_x64", True)
 
@@ -64,8 +63,8 @@ esigmas = jnp.array([   1., 1., 1.,
                         5., 5., 10.])
 
 for k in range(15):
-    exec(f'roh_{k+1} = jft.NormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
-    exec(f'sigma_{k+1} = jft.NormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
+    exec(f'roh_{k+1} = jft.LogNormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
+    exec(f'sigma_{k+1} = jft.LogNormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
 
 roh_dm = jft.UniformPrior(0, 0.2, name="roh_dm", shape=(1,))
 
