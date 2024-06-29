@@ -76,56 +76,48 @@ class ForwardModel(jft.Model):
         self.roh_dm = roh_dm
 
         super().__init__(
-            init=   self.roh_1.init | self.sigma_1.init | \
-                    self.roh_2.init | self.sigma_2.init | \
-                    self.roh_3.init | self.sigma_3.init | \
-                    self.roh_4.init | self.sigma_4.init | \
-                    self.roh_5.init | self.sigma_5.init | \
-                    self.roh_6.init | self.sigma_6.init | \
-                    self.roh_7.init | self.sigma_7.init | \
-                    self.roh_8.init | self.sigma_8.init | \
-                    self.roh_9.init | self.sigma_9.init | \
-                    self.roh_10.init | self.sigma_10.init | \
-                    self.roh_11.init | self.sigma_11.init | \
-                    self.roh_12.init | self.sigma_12.init | \
-                    self.roh_13.init | self.sigma_13.init | \
-                    self.roh_14.init | self.sigma_14.init | \
-                    self.roh_15.init | self.sigma_15.init | \
-                    self.roh_dm.init
+            init=   self.roh_1.init | self.sigma_1.init | self.roh_2.init | self.sigma_2.init | \
+                    self.roh_3.init | self.sigma_3.init | self.roh_4.init | self.sigma_4.init | \
+                    self.roh_5.init | self.sigma_5.init | self.roh_6.init | self.sigma_6.init | \
+                    self.roh_7.init | self.sigma_7.init | self.roh_8.init | self.sigma_8.init | \
+                    self.roh_9.init | self.sigma_9.init | self.roh_10.init | self.sigma_10.init | \
+                    self.roh_11.init | self.sigma_11.init | self.roh_12.init | self.sigma_12.init | \
+                    self.roh_13.init | self.sigma_13.init | self.roh_14.init | self.sigma_14.init | \
+                    self.roh_15.init | self.sigma_15.init | self.roh_dm.init
         )
 
     def __call__(self, x):
-        p1 = self.roh_1(x)
-        p2 = self.sigma_1(x)
-        p3 = self.roh_2(x)
-        p4 = self.sigma_2(x)
-        p5 = self.roh_3(x)
-        p6 = self.sigma_3(x)
-        p7 = self.roh_4(x)
-        p8 = self.sigma_4(x)
-        p9 = self.roh_5(x)
-        p10 = self.sigma_5(x)
-        p11 = self.roh_6(x)
-        p12 = self.sigma_6(x)
-        p13 = self.roh_7(x)
-        p14 = self.sigma_7(x)
-        p15 = self.roh_8(x)
-        p16 = self.sigma_8(x)
-        p17 = self.roh_9(x)
-        p18 = self.sigma_9(x)
-        p19 = self.roh_10(x)
-        p20 = self.sigma_10(x)
-        p21 = self.roh_11(x)
-        p22 = self.sigma_11(x)
-        p23 = self.roh_12(x)
-        p24 = self.sigma_12(x)
-        p25 = self.roh_13(x)
-        p26 = self.sigma_13(x)
-        p27 = self.roh_14(x)
-        p28 = self.sigma_14(x)
-        p29 = self.roh_15(x)
-        p30 = self.sigma_15(x)
-        p31 = self.roh_dm(x)
+        r1 = self.roh_1(x)
+        s1 = self.sigma_1(x)
+        r2 = self.roh_2(x)
+        s2 = self.sigma_2(x)
+        r3 = self.roh_3(x)
+        s3 = self.sigma_3(x)
+        r4 = self.roh_4(x)
+        s4 = self.sigma_4(x)
+        r5 = self.roh_5(x)
+        s5 = self.sigma_5(x)
+        r6 = self.roh_6(x)
+        s6 = self.sigma_6(x)
+        r7 = self.roh_7(x)
+        s7 = self.sigma_7(x)
+        r8 = self.roh_8(x)
+        s8 = self.sigma_8(x)
+        r9 = self.roh_9(x)
+        s9 = self.sigma_9(x)
+        r10 = self.roh_10(x)
+        s10 = self.sigma_10(x)
+        r11 = self.roh_11(x)
+        s11 = self.sigma_11(x)
+        r12 = self.roh_12(x)
+        s12 = self.sigma_12(x)
+        r13 = self.roh_13(x)
+        s13 = self.sigma_13(x)
+        r14 = self.roh_14(x)
+        s14 = self.sigma_14(x)
+        r15 = self.roh_15(x)
+        s15 = self.sigma_15(x)
+        r_dm = self.roh_dm(x)
 
         def complicated_function(roh_1, sigma_1, roh_2, sigma_2, 
                                  roh_3, sigma_3, roh_4, sigma_4, 
@@ -219,12 +211,10 @@ class ForwardModel(jft.Model):
 
             return vdfo_norm_calc
 
-        return complicated_function(p1, p2, p3, p4, p5, 
-                                    p6, p7, p8, p9, p10, 
-                                    p11, p12, p13, p14, p15, 
-                                    p16, p17, p18, p19, p20,
-                                    p21, p22, p23, p24, p25,
-                                    p26, p27, p28, p29, p30, p31)
+        return complicated_function(r1, s1, r2, s2, r3, s3, r4, s4, 
+                                    r5, s5, r6, s6, r7, s7, r8, s8, 
+                                    r9, s9, r10, s10, r11, s11, r12, s12, 
+                                    r13, s13, r14, s14, r15, s15, r_dm)
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
