@@ -315,19 +315,38 @@ def test_mgvi(s):
     # Please save your results in some way:
     # TODO
 
+    truthr = [roh_1(pos_truth)[0], roh_2(pos_truth)[0], roh_3(pos_truth)[0], roh_4(pos_truth)[0], roh_5(pos_truth)[0], roh_6(pos_truth)[0], roh_7(pos_truth)[0], roh_8(pos_truth)[0], roh_9(pos_truth)[0], roh_10(pos_truth)[0], roh_11(pos_truth)[0], roh_12(pos_truth)[0], roh_13(pos_truth)[0], roh_14(pos_truth)[0], roh_15(pos_truth)[0], roh_dm(pos_truth)[0]]
+    meanr = [results[f'roh{k+1}'][0] for k in range(15)] + [results['rohdm'][0]]
+    stdr = [results[f'roh{k+1}'][1] for k in range(15)] + [results['rohdm'][1]]
+
+
     data_roh = {
-        "True Value roh": [roh_1(pos_truth)[0], roh_2(pos_truth)[0], roh_3(pos_truth)[0], roh_4(pos_truth)[0], roh_5(pos_truth)[0], roh_6(pos_truth)[0], roh_7(pos_truth)[0], roh_8(pos_truth)[0], roh_9(pos_truth)[0], roh_10(pos_truth)[0], roh_11(pos_truth)[0], roh_12(pos_truth)[0], roh_13(pos_truth)[0], roh_14(pos_truth)[0], roh_15(pos_truth)[0], roh_dm(pos_truth)[0]],
-        "Inferred Value roh": [results[f'roh{k+1}'][0] for k in range(15)] + [results['rohdm'][0]],
-        "Standard Deviation roh": [results[f'roh{k+1}'][1] for k in range(15)] + [results['rohdm'][1]],
+        "True Value roh": truthr,
+
+        "Inferred Value roh": meanr,
+
+        "Standard Deviation roh": stdr,
+
         "Samples roh": [results[f'rohs{k+1}'] for k in range(15)] + [results['rohsdm']],
-        "Abweichung roh": [abs(results[f'roh{k+1}'][0] - roh_1(pos_truth)[0])/results[f'roh{k+1}'][1] for k in range(15)] + [abs(results['rohdm'][0] - roh_dm(pos_truth)[0])/results['rohdm'][1]]
+
+        "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
     }
+
+    truths = [sigma_1(pos_truth)[0], sigma_2(pos_truth)[0], sigma_3(pos_truth)[0], sigma_4(pos_truth)[0], sigma_5(pos_truth)[0], sigma_6(pos_truth)[0], sigma_7(pos_truth)[0], sigma_8(pos_truth)[0], sigma_9(pos_truth)[0], sigma_10(pos_truth)[0], sigma_11(pos_truth)[0], sigma_12(pos_truth)[0], sigma_13(pos_truth)[0], sigma_14(pos_truth)[0], sigma_15(pos_truth)[0]]
+    means = [results[f'sigma{k+1}'][0] for k in range(15)]
+    stds = [results[f'sigma{k+1}'][1] for k in range(15)]
+
+
     data_sigma = {
-        "True Value sigma": [sigma_1(pos_truth)[0], sigma_2(pos_truth)[0], sigma_3(pos_truth)[0], sigma_4(pos_truth)[0], sigma_5(pos_truth)[0], sigma_6(pos_truth)[0], sigma_7(pos_truth)[0], sigma_8(pos_truth)[0], sigma_9(pos_truth)[0], sigma_10(pos_truth)[0], sigma_11(pos_truth)[0], sigma_12(pos_truth)[0], sigma_13(pos_truth)[0], sigma_14(pos_truth)[0], sigma_15(pos_truth)[0]],
-        "Inferred Value sigma": [results[f'sigma{k+1}'][0] for k in range(15)],
-        "Standard Deviation sigma": [results[f'sigma{k+1}'][1] for k in range(15)],
+        "True Value sigma": truths,
+
+        "Inferred Value sigma": means,
+
+        "Standard Deviation sigma": stds,
+
         "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
-        "Abweichung sigma": [abs(results[f'sigma{k+1}'][0] - sigma_1(pos_truth)[0])/results[f'sigma{k+1}'][1] for k in range(15)]
+
+        "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
     dfr = pd.DataFrame(data_roh)
