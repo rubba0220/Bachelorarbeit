@@ -315,41 +315,19 @@ def test_mgvi(s):
     # Please save your results in some way:
     # TODO
 
-    # for k in range(15):
-    #     if eval(f'(roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1] > 1.5'):
-    #         exec(f'print("Inferred values:", "MEAN:", roh{k+1}[0], "STD:", roh{k+1}[1])')
-    #         exec(f'print("with the true value being:", roh_{k+1}(pos_truth))')
-    #         exec(f'print("Abweichung: ", (roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1], "STDs")')
-    #     if eval(f'(sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1] > 1.5'):
-    #         exec(f'print("Inferred values:", "MEAN:", sigma{k+1}[0], "STD:", sigma{k+1}[1])')
-    #         exec(f'print("with the true value being:", sigma_{k+1}(pos_truth))')
-    #         exec(f'print("Abweichung: ", (sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1], "STDs")')
-
-    # print("")
-
-    # if (rohdm[0]-roh_dm(pos_truth))/rohdm[1] > 1.8:
-    #     print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
-    #     print("with the true value being:", roh_dm(pos_truth))
-    #     print("Abweichung: ", (rohdm[0]-roh_dm(pos_truth))/rohdm[1], "STDs")
-
-    # print("")
-
-    # print(jnp.mean(jnp.array([roh1[1]/roh1[0], roh2[1]/roh2[0], roh3[1]/roh3[0], roh4[1]/roh4[0], roh5[1]/roh5[0], roh6[1]/roh6[0], roh7[1]/roh7[0], roh8[1]/roh8[0], roh9[1]/roh9[0], roh10[1]/roh10[0], roh11[1]/roh11[0], roh12[1]/roh12[0], roh13[1]/roh13[0], roh14[1]/roh14[0], roh15[1]/roh15[0], rohdm[1]/rohdm[0]])))
-    # print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos_truth))/roh2[1], (roh3[0]-roh_3(pos_truth))/roh3[1], (roh4[0]-roh_4(pos_truth))/roh4[1], (roh5[0]-roh_5(pos_truth))/roh5[1], (roh6[0]-roh_6(pos_truth))/roh6[1], (roh7[0]-roh_7(pos_truth))/roh7[1], (roh8[0]-roh_8(pos_truth))/roh8[1], (roh9[0]-roh_9(pos_truth))/roh9[1], (roh10[0]-roh_10(pos_truth))/roh10[1], (roh11[0]-roh_11(pos_truth))/roh11[1], (roh12[0]-roh_12(pos_truth))/roh12[1], (roh13[0]-roh_13(pos_truth))/roh13[1], (roh14[0]-roh_14(pos_truth))/roh14[1], (roh15[0]-roh_15(pos_truth))/roh15[1], (rohdm[0]-roh_dm(pos_truth))/rohdm[1]])))
-
-    #plt.show()
-
     data_roh = {
         "True Value roh": [roh_1(pos_truth)[0], roh_2(pos_truth)[0], roh_3(pos_truth)[0], roh_4(pos_truth)[0], roh_5(pos_truth)[0], roh_6(pos_truth)[0], roh_7(pos_truth)[0], roh_8(pos_truth)[0], roh_9(pos_truth)[0], roh_10(pos_truth)[0], roh_11(pos_truth)[0], roh_12(pos_truth)[0], roh_13(pos_truth)[0], roh_14(pos_truth)[0], roh_15(pos_truth)[0], roh_dm(pos_truth)[0]],
         "Inferred Value roh": [results[f'roh{k+1}'][0] for k in range(15)] + [results['rohdm'][0]],
         "Standard Deviation roh": [results[f'roh{k+1}'][1] for k in range(15)] + [results['rohdm'][1]],
-        "Samples roh": [results[f'rohs{k+1}'] for k in range(15)] + [results['rohsdm']]
+        "Samples roh": [results[f'rohs{k+1}'] for k in range(15)] + [results['rohsdm']],
+        "Abweichung roh": [abs(results[f'roh{k+1}'][0] - roh_1(pos_truth)[0])/results[f'roh{k+1}'][1] for k in range(15)] + [abs(results['rohdm'][0] - roh_dm(pos_truth)[0])/results['rohdm'][1]]
     }
     data_sigma = {
         "True Value sigma": [sigma_1(pos_truth)[0], sigma_2(pos_truth)[0], sigma_3(pos_truth)[0], sigma_4(pos_truth)[0], sigma_5(pos_truth)[0], sigma_6(pos_truth)[0], sigma_7(pos_truth)[0], sigma_8(pos_truth)[0], sigma_9(pos_truth)[0], sigma_10(pos_truth)[0], sigma_11(pos_truth)[0], sigma_12(pos_truth)[0], sigma_13(pos_truth)[0], sigma_14(pos_truth)[0], sigma_15(pos_truth)[0]],
         "Inferred Value sigma": [results[f'sigma{k+1}'][0] for k in range(15)],
         "Standard Deviation sigma": [results[f'sigma{k+1}'][1] for k in range(15)],
-        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
+        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
+        "Abweichung sigma": [abs(results[f'sigma{k+1}'][0] - sigma_1(pos_truth)[0])/results[f'sigma{k+1}'][1] for k in range(15)]
     }
 
     dfr = pd.DataFrame(data_roh)
