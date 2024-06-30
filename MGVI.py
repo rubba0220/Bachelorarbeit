@@ -29,7 +29,7 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung, sodass z in parsec
 
 n = 1200
-dz = 1
+dz = 1.
 
 i1 = int(200/1200 * n)
 i2 = n
@@ -85,15 +85,15 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
 
     return uz
 
-#mock velocity dispersion function
-#@jit
-def sigma(z):
-    return 20. + 17.*z/1000. #z in pc, sigma in km/s
-
 #Berechnung des tracer density drop off
 #neu:lax.scan()
 @partial(jit, static_argnames=['i1', 'i2', 'i3'])
 def vdfo_norm(i1, i2, i3, z0, dz, uz):
+    
+    #mock velocity dispersion function
+    def sigma(z):
+        return 20. + 17.*z/1000. #z in pc, sigma in km/s
+    
     zs = jnp.linspace(z0+i1*dz, z0+(i2-1)*dz, i2-i1)
     sigma_sq_norm = (sigma(zs)/sigma(z0+i3*dz))**(2)
     zss = jnp.linspace(z0+i3*dz, z0+(i1-1)*dz, i1-i3)
