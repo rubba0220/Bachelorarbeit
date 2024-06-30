@@ -351,10 +351,31 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv('data_roh.csv', index=False)
-    dfs.to_csv('data_sigma.csv', index=False)
+    dfr.to_csv('data_roh.csv', mode='a', header=False, index=False)
+    dfs.to_csv('data_sigma.csv', mode='a', header=False, index=False)
 
     t1 = time.time()
     print('Time:', t1-t0, 's')
 
-test_mgvi(42)
+seed = 10
+key = random.PRNGKey(seed)
+
+key, subkey = random.split(key)
+seeds = random.randint(subkey, (10,), 1, 1000000)
+
+def has_duplicates(arr):
+    seen = set()
+    for element in arr:
+        element = int(element)
+        if element in seen:
+            return True
+        seen.add(element)
+    return False
+
+if has_duplicates(seeds):
+    print("Das Array enthält doppelte Elemente.")
+
+else:
+    for s in seeds:
+        test_mgvi(s)
+
