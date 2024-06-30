@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
 from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint
+import pandas as pd
 
 import time
 jax.config.update("jax_enable_x64", True)
@@ -230,107 +231,133 @@ class ForwardModel(jft.Model):
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
-seed = 42
-key = random.PRNGKey(seed)
+def test_mgvi(s):
+    seed = s
+    key = random.PRNGKey(seed)
 
-noise_cov = lambda x: 0.001 * x
-noise_cov_inv = lambda x: 1. / 0.001 * x
+    noise_cov = lambda x: 0.001 * x
+    noise_cov_inv = lambda x: 1. / 0.001 * x
 
-key, subkey = random.split(key)
-pos_truth = jft.random_like(subkey, fwd.domain)
-fwd_truth = fwd(pos_truth)
+    key, subkey = random.split(key)
+    pos_truth = jft.random_like(subkey, fwd.domain)
+    fwd_truth = fwd(pos_truth)
 
-key, subkey = random.split(key)
-noise_truth = (
-    (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
-) * jft.random_like(key, fwd.target) # random means white noise
-data = fwd_truth + noise_truth
+    key, subkey = random.split(key)
+    noise_truth = (
+        (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
+    ) * jft.random_like(key, fwd.target) # random means white noise
+    data = fwd_truth + noise_truth
 
-#Visualisierung
-fig, ax = plt.subplots(figsize=(20,10))
-ax.set_xlabel('z/pc')
-#ax.set_yscale('log')
-ax.set_ylabel('$\\nu / \\nu_0 $')
-ax.scatter([0.+i*dz for i in range(i1,i2)], [data], marker='o')
-ax.grid()
-fig.tight_layout()
+    # #Visualisierung
+    # fig, ax = plt.subplots(figsize=(20,10))
+    # ax.set_xlabel('z/pc')
+    # #ax.set_yscale('log')
+    # ax.set_ylabel('$\\nu / \\nu_0 $')
+    # ax.scatter([0.+i*dz for i in range(i1,i2)], [data], marker='o')
+    # ax.grid()
+    # fig.tight_layout()
 
-lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
-
-
-# Now lets run the main inference scheme:
-n_vi_iterations = 6
-delta = 1e-4
-n_samples = 10
-
-key, k_i, k_o = random.split(key, 3)
-# NOTE, changing the number of samples always triggers a resampling even if
-# `resamples=False`, as more samples have to be drawn that did not exist before.
-samples, state = jft.optimize_kl(
-    lh,
-    jft.Vector(lh.init(k_i)),
-    n_total_iterations=n_vi_iterations,
-    n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
-    # Source for the stochasticity for sampling
-    key=k_o,
-    # Arguments for the conjugate gradient method used to drawing samples from
-    # an implicit covariance matrix
-    draw_linear_kwargs=dict(
-        cg_name="SL",
-        cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
-    ),
-    # Arguements for the minimizer in the nonlinear updating of the samples
-    nonlinearly_update_kwargs=dict(
-        minimize_kwargs=dict(
-            name="SN",
-            xtol=delta,
-            cg_kwargs=dict(name=None),
-            maxiter=5,
-        )
-    ),
-    # Arguments for the minimizer of the KL-divergence cost potential
-    kl_kwargs=dict(
-        minimize_kwargs=dict(
-            name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
-        )
-    ),
-    sample_mode="nonlinear_resample",
-    odir="./results_test",
-    resume=False,
-)
-
-# Now the samples-object contains all the abstract parameters that were inferred
-# Reading out the physical input parameter values goes e.g. like this:
-for k in range(15):
-        exec(f'roh{k+1} = jft.mean_and_std(tuple(roh_{k+1}(s) for s in samples))')
-        exec(f'sigma{k+1} = jft.mean_and_std(tuple(sigma_{k+1}(s) for s in samples))')
-rohdm = jft.mean_and_std(tuple(roh_dm(s) for s in samples))
-
-# Please save your results in some way:
-# TODO
-
-for k in range(15):
-    if eval(f'(roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1] > 1.5'):
-        exec(f'print("Inferred values:", "MEAN:", roh{k+1}[0], "STD:", roh{k+1}[1])')
-        exec(f'print("with the true value being:", roh_{k+1}(pos_truth))')
-        exec(f'print("Abweichung: ", (roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1], "STDs")')
-    if eval(f'(sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1] > 1.5'):
-        exec(f'print("Inferred values:", "MEAN:", sigma{k+1}[0], "STD:", sigma{k+1}[1])')
-        exec(f'print("with the true value being:", sigma_{k+1}(pos_truth))')
-        exec(f'print("Abweichung: ", (sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1], "STDs")')
-
-print("")
-
-if (rohdm[0]-roh_dm(pos_truth))/rohdm[1] > 1.5:
-    print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
-    print("with the true value being:", roh_dm(pos_truth))
-    print("Abweichung: ", (rohdm[0]-roh_dm(pos_truth))/rohdm[1], "STDs")
+    lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
 
-print(jnp.mean(jnp.array([roh1[1]/roh1[0], roh2[1]/roh2[0], roh3[1]/roh3[0], roh4[1]/roh4[0], roh5[1]/roh5[0], roh6[1]/roh6[0], roh7[1]/roh7[0], roh8[1]/roh8[0], roh9[1]/roh9[0], roh10[1]/roh10[0], roh11[1]/roh11[0], roh12[1]/roh12[0], roh13[1]/roh13[0], roh14[1]/roh14[0], roh15[1]/roh15[0], rohdm[1]/rohdm[0]])))
-print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos_truth))/roh2[1], (roh3[0]-roh_3(pos_truth))/roh3[1], (roh4[0]-roh_4(pos_truth))/roh4[1], (roh5[0]-roh_5(pos_truth))/roh5[1], (roh6[0]-roh_6(pos_truth))/roh6[1], (roh7[0]-roh_7(pos_truth))/roh7[1], (roh8[0]-roh_8(pos_truth))/roh8[1], (roh9[0]-roh_9(pos_truth))/roh9[1], (roh10[0]-roh_10(pos_truth))/roh10[1], (roh11[0]-roh_11(pos_truth))/roh11[1], (roh12[0]-roh_12(pos_truth))/roh12[1], (roh13[0]-roh_13(pos_truth))/roh13[1], (roh14[0]-roh_14(pos_truth))/roh14[1], (roh15[0]-roh_15(pos_truth))/roh15[1], (rohdm[0]-roh_dm(pos_truth))/rohdm[1]])))
+    # Now lets run the main inference scheme:
+    n_vi_iterations = 6
+    delta = 1e-4
+    n_samples = 10
 
-plt.show()
+    key, k_i, k_o = random.split(key, 3)
+    # NOTE, changing the number of samples always triggers a resampling even if
+    # `resamples=False`, as more samples have to be drawn that did not exist before.
+    samples, state = jft.optimize_kl(
+        lh,
+        jft.Vector(lh.init(k_i)),
+        n_total_iterations=n_vi_iterations,
+        n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+        # Source for the stochasticity for sampling
+        key=k_o,
+        # Arguments for the conjugate gradient method used to drawing samples from
+        # an implicit covariance matrix
+        draw_linear_kwargs=dict(
+            cg_name="SL",
+            cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+        ),
+        # Arguements for the minimizer in the nonlinear updating of the samples
+        nonlinearly_update_kwargs=dict(
+            minimize_kwargs=dict(
+                name="SN",
+                xtol=delta,
+                cg_kwargs=dict(name=None),
+                maxiter=5,
+            )
+        ),
+        # Arguments for the minimizer of the KL-divergence cost potential
+        kl_kwargs=dict(
+            minimize_kwargs=dict(
+                name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+            )
+        ),
+        sample_mode="nonlinear_resample",
+        odir="./results_test",
+        resume=False,
+    )
 
-t1 = time.time()
-print('Time:', t1-t0, 's')
+    # Now the samples-object contains all the abstract parameters that were inferred
+    # Reading out the physical input parameter values goes e.g. like this:
+    results = {}
+
+    for k in range(15):
+        exec(f'results["rohs{k+1}"] = tuple(roh_{k+1}(s).tolist()[0] for s in samples)')
+        exec(f'results["sigmas{k+1}"] = tuple(sigma_{k+1}(s).tolist()[0] for s in samples)')
+        exec(f'results["roh{k+1}"] = jft.mean_and_std(results["rohs{k+1}"])')
+        exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
+    results["rohsdm"] = tuple(roh_dm(s).tolist()[0] for s in samples)
+    results["rohdm"] = jft.mean_and_std(results["rohsdm"])
+    # Please save your results in some way:
+    # TODO
+
+    # for k in range(15):
+    #     if eval(f'(roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1] > 1.5'):
+    #         exec(f'print("Inferred values:", "MEAN:", roh{k+1}[0], "STD:", roh{k+1}[1])')
+    #         exec(f'print("with the true value being:", roh_{k+1}(pos_truth))')
+    #         exec(f'print("Abweichung: ", (roh{k+1}[0]-roh_{k+1}(pos_truth))/roh{k+1}[1], "STDs")')
+    #     if eval(f'(sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1] > 1.5'):
+    #         exec(f'print("Inferred values:", "MEAN:", sigma{k+1}[0], "STD:", sigma{k+1}[1])')
+    #         exec(f'print("with the true value being:", sigma_{k+1}(pos_truth))')
+    #         exec(f'print("Abweichung: ", (sigma{k+1}[0]-sigma_{k+1}(pos_truth))/sigma{k+1}[1], "STDs")')
+
+    # print("")
+
+    # if (rohdm[0]-roh_dm(pos_truth))/rohdm[1] > 1.8:
+    #     print("Inferred values:", "MEAN:", rohdm[0], "STD:", rohdm[1])
+    #     print("with the true value being:", roh_dm(pos_truth))
+    #     print("Abweichung: ", (rohdm[0]-roh_dm(pos_truth))/rohdm[1], "STDs")
+
+    # print("")
+
+    # print(jnp.mean(jnp.array([roh1[1]/roh1[0], roh2[1]/roh2[0], roh3[1]/roh3[0], roh4[1]/roh4[0], roh5[1]/roh5[0], roh6[1]/roh6[0], roh7[1]/roh7[0], roh8[1]/roh8[0], roh9[1]/roh9[0], roh10[1]/roh10[0], roh11[1]/roh11[0], roh12[1]/roh12[0], roh13[1]/roh13[0], roh14[1]/roh14[0], roh15[1]/roh15[0], rohdm[1]/rohdm[0]])))
+    # print(jnp.mean(jnp.array([(roh1[0]-roh_1(pos_truth))/roh1[1], (roh2[0]-roh_2(pos_truth))/roh2[1], (roh3[0]-roh_3(pos_truth))/roh3[1], (roh4[0]-roh_4(pos_truth))/roh4[1], (roh5[0]-roh_5(pos_truth))/roh5[1], (roh6[0]-roh_6(pos_truth))/roh6[1], (roh7[0]-roh_7(pos_truth))/roh7[1], (roh8[0]-roh_8(pos_truth))/roh8[1], (roh9[0]-roh_9(pos_truth))/roh9[1], (roh10[0]-roh_10(pos_truth))/roh10[1], (roh11[0]-roh_11(pos_truth))/roh11[1], (roh12[0]-roh_12(pos_truth))/roh12[1], (roh13[0]-roh_13(pos_truth))/roh13[1], (roh14[0]-roh_14(pos_truth))/roh14[1], (roh15[0]-roh_15(pos_truth))/roh15[1], (rohdm[0]-roh_dm(pos_truth))/rohdm[1]])))
+
+    #plt.show()
+
+    data_roh = {
+        "True Value roh": [roh_1(pos_truth)[0], roh_2(pos_truth)[0], roh_3(pos_truth)[0], roh_4(pos_truth)[0], roh_5(pos_truth)[0], roh_6(pos_truth)[0], roh_7(pos_truth)[0], roh_8(pos_truth)[0], roh_9(pos_truth)[0], roh_10(pos_truth)[0], roh_11(pos_truth)[0], roh_12(pos_truth)[0], roh_13(pos_truth)[0], roh_14(pos_truth)[0], roh_15(pos_truth)[0], roh_dm(pos_truth)[0]],
+        "Inferred Value roh": [results[f'roh{k+1}'][0] for k in range(15)] + [results['rohdm'][0]],
+        "Standard Deviation roh": [results[f'roh{k+1}'][1] for k in range(15)] + [results['rohdm'][1]],
+        "Samples roh": [results[f'rohs{k+1}'] for k in range(15)] + [results['rohsdm']]
+    }
+    data_sigma = {
+        "True Value sigma": [sigma_1(pos_truth)[0], sigma_2(pos_truth)[0], sigma_3(pos_truth)[0], sigma_4(pos_truth)[0], sigma_5(pos_truth)[0], sigma_6(pos_truth)[0], sigma_7(pos_truth)[0], sigma_8(pos_truth)[0], sigma_9(pos_truth)[0], sigma_10(pos_truth)[0], sigma_11(pos_truth)[0], sigma_12(pos_truth)[0], sigma_13(pos_truth)[0], sigma_14(pos_truth)[0], sigma_15(pos_truth)[0]],
+        "Inferred Value sigma": [results[f'sigma{k+1}'][0] for k in range(15)],
+        "Standard Deviation sigma": [results[f'sigma{k+1}'][1] for k in range(15)],
+        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
+    }
+
+    dfr = pd.DataFrame(data_roh)
+    dfs = pd.DataFrame(data_sigma)
+    dfr.to_csv('data_roh.csv', index=False)
+    dfs.to_csv('data_sigma.csv', index=False)
+
+    t1 = time.time()
+    print('Time:', t1-t0, 's')
+
+test_mgvi(42)
