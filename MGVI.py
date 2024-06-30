@@ -24,7 +24,7 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
-G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2 #impurity ist ok (G ist konstant über die Auswertung)
+G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
                             #Umrechnung, sodass z in parsec
 
@@ -59,7 +59,7 @@ def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
                     adjoint = adjoint, throw=False)
                     #max_steps=65536)
 
-    zs = sol.ts
+    #zs = sol.ts
     uz = sol.ys
 
     return uz
@@ -86,9 +86,32 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
     return uz
 
 #mock velocity dispersion function
+#@jit
 def sigma(z):
-    return 20 + 17*z/1000 #z in pc, sigma in km/s
+    return 20. + 17.*z/1000. #z in pc, sigma in km/s
 
+#Berechnung des tracer density drop off
+#neu:lax.scan()
+@partial(jit, static_argnames=['i1', 'i2', 'i3'])
+def vdfo_norm(i1, i2, i3, z0, dz, uz):
+    zs = jnp.linspace(z0+i1*dz, z0+(i2-1)*dz, i2-i1)
+    sigma_sq_norm = (sigma(zs)/sigma(z0+i3*dz))**(2)
+    zss = jnp.linspace(z0+i3*dz, z0+(i1-1)*dz, i1-i3)
+    sigmass = sigma(zss)
+
+    exp_int = jnp.exp(-jnp.sum(\
+                sigmass**(-2) \
+                * jnp.array(uz)[i3:i1,1] * dz))
+
+    def exp_int_step(exp_int, i):
+        return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
+                exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
+
+    _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
+
+    vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
+
+    return vdfo_norm_calc
 
 ''' Test des Algorithmus zur MGVI '''
 rohs = jnp.array([  0.021, 0.016, 0.012, 
@@ -192,21 +215,7 @@ class ForwardModel(jft.Model):
 
             uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
 
-            #Berechnung des tracer density drop off
-            #neu:lax.scan()
-            sigma_sq_norm = jnp.array([(sigma(z0+i*dz)/sigma(z0+i3*dz))**(2) for i in range(i1,i2)])
-            #mit jax array ? 
-            exp_int = jnp.exp(-jnp.sum(\
-                        sigma(jnp.array([z0+i*dz for i in range(i3,i1)]))**(-2) \
-                        * jnp.array(uz)[i3:i1,1] * dz))
-
-            def exp_int_step(exp_int, i):
-                return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
-                        exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
-
-            _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
-
-            vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
+            vdfo_norm_calc = vdfo_norm(i1, i2, i3, z0, dz, uz)
 
             return vdfo_norm_calc
 
