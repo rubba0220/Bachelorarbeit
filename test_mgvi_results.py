@@ -34,6 +34,10 @@ def Auswertung(file_roh, file_sigma):
     ax.grid()
     fig.tight_layout()
 
+    truth = list(data_roh.iloc[:,0])
+    inferred = list(data_roh.iloc[:,1])
+    sigma = list(data_roh.iloc[:,2])
+
     # #Visualisierung
     # fig, ax = plt.subplots(figsize=(20,10))
     # ax.set_xlabel('parameter sortiert nach Testdurchlauf')
@@ -45,6 +49,16 @@ def Auswertung(file_roh, file_sigma):
     #      ax.scatter(jnp.arange(1 + 10*16 + i*15,1 + 10*16 + (i+1)*15, 1), abw_sigma[i::10], marker='x')
     # ax.grid()
     # fig.tight_layout()
+
+    #Visualisierung
+    fig, ax = plt.subplots(figsize=(20,10))
+    ax.set_xlabel('True Value')
+    ax.set_ylabel('Inferred Value')
+    ax.errorbar(truth[::16], inferred[::16], yerr = sigma[::16], fmt='o')
+    ax.plot([min(truth[::16]+inferred[::16]),max(truth[::16]+inferred[::16])],[min(truth[::16]+inferred[::16]),max(truth[::16]+inferred[::16])], color='black', linestyle='--')
+    ax.grid()
+    fig.tight_layout()
+
 
     def histogram2(data, titel, label, name='', save=False):
         
