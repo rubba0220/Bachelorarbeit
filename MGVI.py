@@ -231,7 +231,7 @@ class ForwardModel(jft.Model):
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
-def test_mgvi(s):
+def test_mgvi(s, ns = 6):
     seed = s
     key = random.PRNGKey(seed)
 
@@ -261,7 +261,7 @@ def test_mgvi(s):
 
 
     # Now lets run the main inference scheme:
-    n_vi_iterations = 6
+    n_vi_iterations = ns
     delta = 1e-4
     n_samples = 10
 
@@ -351,13 +351,13 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv('data_roh.csv', mode='a', header=False, index=False)
-    dfs.to_csv('data_sigma.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_{ns}.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_{ns}.csv', mode='a', header=False, index=False)
 
     t1 = time.time()
     print('Time:', t1-t0, 's')
 
-seed = 10
+seed = 100
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
@@ -377,5 +377,6 @@ if has_duplicates(seeds):
 
 else:
     for s in seeds:
-        test_mgvi(s)
+        test_mgvi(s, 3)
+        test_mgvi(s, 9)
 
