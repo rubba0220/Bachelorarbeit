@@ -143,7 +143,7 @@ for k in range(15):
     exec(f'roh_{k+1} = jft.LogNormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
     exec(f'sigma_{k+1} = jft.LogNormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
 
-roh_dm = jft.LogNormalPrior(0.025, 0.2, name="roh_dm", shape=(1,))
+roh_dm = jft.UniformPrior(0., 0.2, name="roh_dm", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -351,17 +351,17 @@ def test_mgvi(s, ns = 6):
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_{ns}_ln_100.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_{ns}_ln_100.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_{ns}_un_50.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_{ns}_un_50.csv', mode='a', header=False, index=False)
 
     t1 = time.time()
     print('Time:', t1-t0, 's')
 
-seed = 10000
+seed = 100000
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (100,), 1, 1000000)
+seeds = random.randint(subkey, (50,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()

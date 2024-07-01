@@ -28,9 +28,9 @@ def Auswertung(file_roh, file_sigma):
     ax.set_xlabel('parameter sortiert nach parameter')
     ax.set_ylabel('Abweichung in Stddevs')
     for i in range(16):
-        ax.scatter(jnp.arange(1 +i*88, 1 + (i+1)*88, 1), abw_roh[i::16], marker='o')
+        ax.scatter(jnp.arange(1 +i*41, 1 + (i+1)*41, 1), abw_roh[i::16], marker='o')
     for i in range(15):
-        ax.scatter(jnp.arange(1 + 88*16 + i*88, 1 + 88*16 + (i+1)*88, 1), abw_sigma[i::15], marker='x')
+        ax.scatter(jnp.arange(1 + 41*16 + i*41, 1 + 41*16 + (i+1)*41, 1), abw_sigma[i::15], marker='x')
     ax.grid()
     fig.tight_layout()
 
@@ -126,4 +126,4 @@ def Auswertung(file_roh, file_sigma):
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_6_ln_100.csv', 'data_sigma_6_ln_100.csv')
+Auswertung('data_roh_6_un_50.csv', 'data_sigma_6_un_50.csv')
