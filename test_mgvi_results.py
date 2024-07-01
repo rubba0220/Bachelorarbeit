@@ -112,4 +112,4 @@ def Auswertung(file_roh, file_sigma):
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_6.csv', 'data_sigma_6.csv')
+Auswertung('data_roh_6_ln.csv', 'data_sigma_6_ln.csv')
