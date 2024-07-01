@@ -139,7 +139,7 @@ esigmas = jnp.array([   1., 1., 1.,
                         2., 2., 5.,
                         5., 5., 10.])
 
-for k in range(15):
+for k in range(1):
     exec(f'roh_{k+1} = jft.LogNormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
     exec(f'sigma_{k+1} = jft.LogNormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
 
@@ -147,71 +147,22 @@ roh_dm = jft.UniformPrior(0., 0.2, name="roh_dm", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
-        for k in range(15):
+        for k in range(1):
             exec(f'self.roh_{k+1} = roh_{k+1}')
             exec(f'self.sigma_{k+1} = sigma_{k+1}')
         self.roh_dm = roh_dm
 
         super().__init__(
-            init =   self.roh_1.init | self.sigma_1.init | self.roh_2.init | self.sigma_2.init | \
-                    self.roh_3.init | self.sigma_3.init | self.roh_4.init | self.sigma_4.init | \
-                    self.roh_5.init | self.sigma_5.init | self.roh_6.init | self.sigma_6.init | \
-                    self.roh_7.init | self.sigma_7.init | self.roh_8.init | self.sigma_8.init | \
-                    self.roh_9.init | self.sigma_9.init | self.roh_10.init | self.sigma_10.init | \
-                    self.roh_11.init | self.sigma_11.init | self.roh_12.init | self.sigma_12.init | \
-                    self.roh_13.init | self.sigma_13.init | self.roh_14.init | self.sigma_14.init | \
-                    self.roh_15.init | self.sigma_15.init | self.roh_dm.init)
+            init =   self.roh_1.init | self.sigma_1.init | self.roh_dm.init)
 
     def __call__(self, x):
         r1 = self.roh_1(x)
         s1 = self.sigma_1(x)
-        r2 = self.roh_2(x)
-        s2 = self.sigma_2(x)
-        r3 = self.roh_3(x)
-        s3 = self.sigma_3(x)
-        r4 = self.roh_4(x)
-        s4 = self.sigma_4(x)
-        r5 = self.roh_5(x)
-        s5 = self.sigma_5(x)
-        r6 = self.roh_6(x)
-        s6 = self.sigma_6(x)
-        r7 = self.roh_7(x)
-        s7 = self.sigma_7(x)
-        r8 = self.roh_8(x)
-        s8 = self.sigma_8(x)
-        r9 = self.roh_9(x)
-        s9 = self.sigma_9(x)
-        r10 = self.roh_10(x)
-        s10 = self.sigma_10(x)
-        r11 = self.roh_11(x)
-        s11 = self.sigma_11(x)
-        r12 = self.roh_12(x)
-        s12 = self.sigma_12(x)
-        r13 = self.roh_13(x)
-        s13 = self.sigma_13(x)
-        r14 = self.roh_14(x)
-        s14 = self.sigma_14(x)
-        r15 = self.roh_15(x)
-        s15 = self.sigma_15(x)
         rdm = self.roh_dm(x)
 
-        def complicated_function(roh_1, sigma_1, roh_2, sigma_2, 
-                                 roh_3, sigma_3, roh_4, sigma_4, 
-                                 roh_5, sigma_5, roh_6, sigma_6, 
-                                 roh_7, sigma_7, roh_8, sigma_8, 
-                                 roh_9, sigma_9, roh_10, sigma_10, 
-                                 roh_11, sigma_11, roh_12, sigma_12, 
-                                 roh_13, sigma_13, roh_14, sigma_14, 
-                                 roh_15, sigma_15, roh_dm):
+        def complicated_function(roh_1, sigma_1, roh_dm):
             params = jnp.array([
-                    [roh_1[0], sigma_1[0]], [roh_2[0], sigma_2[0]], 
-                    [roh_3[0], sigma_3[0]], [roh_4[0], sigma_4[0]], 
-                    [roh_5[0], sigma_5[0]], [roh_6[0], sigma_6[0]], 
-                    [roh_7[0], sigma_7[0]], [roh_8[0], sigma_8[0]], 
-                    [roh_9[0], sigma_9[0]], [roh_10[0], sigma_10[0]], 
-                    [roh_11[0], sigma_11[0]], [roh_12[0], sigma_12[0]], 
-                    [roh_13[0], sigma_13[0]], [roh_14[0], sigma_14[0]], 
-                    [roh_15[0], sigma_15[0]]])
+                    [roh_1[0], sigma_1[0]]])
             roh_dm = roh_dm[0]
 
             uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
@@ -220,14 +171,7 @@ class ForwardModel(jft.Model):
 
             return vdfo_norm_calc
 
-        return complicated_function(r1, s1, r2, s2, 
-                                    r3, s3, r4, s4, 
-                                    r5, s5, r6, s6, 
-                                    r7, s7, r8, s8, 
-                                    r9, s9, r10, s10, 
-                                    r11, s11, r12, s12, 
-                                    r13, s13, r14, s14, 
-                                    r15, s15, rdm)
+        return complicated_function(r1, s1, rdm)
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
@@ -305,7 +249,7 @@ def test_mgvi(s, ns = 6):
     # Reading out the physical input parameter values goes e.g. like this:
     results = {}
 
-    for k in range(15):
+    for k in range(1):
         exec(f'results["rohs{k+1}"] = tuple(roh_{k+1}(s).tolist()[0] for s in samples)')
         exec(f'results["sigmas{k+1}"] = tuple(sigma_{k+1}(s).tolist()[0] for s in samples)')
         exec(f'results["roh{k+1}"] = jft.mean_and_std(results["rohs{k+1}"])')
@@ -315,9 +259,9 @@ def test_mgvi(s, ns = 6):
     # Please save your results in some way:
     # TODO
 
-    truthr = [roh_1(pos_truth)[0], roh_2(pos_truth)[0], roh_3(pos_truth)[0], roh_4(pos_truth)[0], roh_5(pos_truth)[0], roh_6(pos_truth)[0], roh_7(pos_truth)[0], roh_8(pos_truth)[0], roh_9(pos_truth)[0], roh_10(pos_truth)[0], roh_11(pos_truth)[0], roh_12(pos_truth)[0], roh_13(pos_truth)[0], roh_14(pos_truth)[0], roh_15(pos_truth)[0], roh_dm(pos_truth)[0]]
-    meanr = [results[f'roh{k+1}'][0] for k in range(15)] + [results['rohdm'][0]]
-    stdr = [results[f'roh{k+1}'][1] for k in range(15)] + [results['rohdm'][1]]
+    truthr = [roh_1(pos_truth)[0], roh_dm(pos_truth)[0]]
+    meanr = [results[f'roh{k+1}'][0] for k in range(1)] + [results['rohdm'][0]]
+    stdr = [results[f'roh{k+1}'][1] for k in range(1)] + [results['rohdm'][1]]
 
 
     data_roh = {
@@ -327,14 +271,14 @@ def test_mgvi(s, ns = 6):
 
         "Standard Deviation roh": stdr,
 
-        "Samples roh": [results[f'rohs{k+1}'] for k in range(15)] + [results['rohsdm']],
+        "Samples roh": [results[f'rohs{k+1}'] for k in range(1)] + [results['rohsdm']],
 
         "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
     }
 
-    truths = [sigma_1(pos_truth)[0], sigma_2(pos_truth)[0], sigma_3(pos_truth)[0], sigma_4(pos_truth)[0], sigma_5(pos_truth)[0], sigma_6(pos_truth)[0], sigma_7(pos_truth)[0], sigma_8(pos_truth)[0], sigma_9(pos_truth)[0], sigma_10(pos_truth)[0], sigma_11(pos_truth)[0], sigma_12(pos_truth)[0], sigma_13(pos_truth)[0], sigma_14(pos_truth)[0], sigma_15(pos_truth)[0]]
-    means = [results[f'sigma{k+1}'][0] for k in range(15)]
-    stds = [results[f'sigma{k+1}'][1] for k in range(15)]
+    truths = [sigma_1(pos_truth)[0]]
+    means = [results[f'sigma{k+1}'][0] for k in range(1)]
+    stds = [results[f'sigma{k+1}'][1] for k in range(1)]
 
 
     data_sigma = {
@@ -344,24 +288,24 @@ def test_mgvi(s, ns = 6):
 
         "Standard Deviation sigma": stds,
 
-        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
+        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(1)],
 
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_{ns}_un_50.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_{ns}_un_50.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_1.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_1.csv', mode='a', header=False, index=False)
 
     t1 = time.time()
     print('Time:', t1-t0, 's')
 
-seed = 100000
+seed = 33
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (50,), 1, 1000000)
+seeds = random.randint(subkey, (20,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
