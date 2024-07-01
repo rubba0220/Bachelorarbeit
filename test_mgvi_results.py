@@ -28,9 +28,9 @@ def Auswertung(file_roh, file_sigma):
     ax.set_xlabel('parameter sortiert nach parameter')
     ax.set_ylabel('Abweichung in Stddevs')
     for i in range(16):
-        ax.scatter(jnp.arange(1 +i*10, 1 + (i+1)*10, 1), abw_roh[i::16], marker='o')
+        ax.scatter(jnp.arange(1 +i*25, 1 + (i+1)*25, 1), abw_roh[i::16], marker='o')
     for i in range(15):
-        ax.scatter(jnp.arange(1 + 10*16 + i*10, 1 + 10*16 + (i+1)*10, 1), abw_sigma[i::15], marker='x')
+        ax.scatter(jnp.arange(1 + 25*16 + i*25, 1 + 25*16 + (i+1)*25, 1), abw_sigma[i::15], marker='x')
     ax.grid()
     fig.tight_layout()
 
@@ -56,8 +56,8 @@ def Auswertung(file_roh, file_sigma):
 
         fig, axarray = plt.subplots(2, 1, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [5, 2]})
         plt.title(titel)
-        anf = np.floor(np.min(data))
-        end = np.ceil(np.max(data))
+        anf = np.floor(np.min(data))-0.25
+        end = np.ceil(np.max(data))+0.25
         n, bins, patches = axarray[0].hist(data,bins=jnp.arange(anf, end, 0.25))
 
         x = np.linspace(anf, end, 100)
@@ -112,5 +112,4 @@ def Auswertung(file_roh, file_sigma):
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_3.csv', 'data_sigma_3.csv')
-Auswertung('data_roh_9.csv', 'data_sigma_9.csv')
+Auswertung('data_roh_6.csv', 'data_sigma_6.csv')

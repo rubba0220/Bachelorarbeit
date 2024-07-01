@@ -361,7 +361,7 @@ seed = 100
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (10,), 1, 1000000)
+seeds = random.randint(subkey, (25,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
@@ -377,6 +377,6 @@ if has_duplicates(seeds):
 
 else:
     for s in seeds:
-        test_mgvi(s, 3)
-        test_mgvi(s, 9)
+        test_mgvi(s, 6)
+
 
