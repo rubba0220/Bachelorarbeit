@@ -377,6 +377,8 @@ if has_duplicates(seeds):
 
 else:
     for s in seeds:
-        test_mgvi(s, 6)
+        print(s)
+
+test_mgvi(370963, 10)
 
 
