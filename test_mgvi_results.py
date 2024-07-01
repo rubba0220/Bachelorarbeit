@@ -28,9 +28,9 @@ def Auswertung(file_roh, file_sigma):
     ax.set_xlabel('parameter sortiert nach parameter')
     ax.set_ylabel('Abweichung in Stddevs')
     for i in range(16):
-        ax.scatter(jnp.arange(1 +i*41, 1 + (i+1)*41, 1), abw_roh[i::16], marker='o')
+        ax.scatter(jnp.arange(1 +i*88, 1 + (i+1)*88, 1), abw_roh[i::16], marker='o')
     for i in range(15):
-        ax.scatter(jnp.arange(1 + 41*16 + i*41, 1 + 41*16 + (i+1)*41, 1), abw_sigma[i::15], marker='x')
+        ax.scatter(jnp.arange(1 + 88*16 + i*88, 1 + 88*16 + (i+1)*88, 1), abw_sigma[i::15], marker='x')
     ax.grid()
     fig.tight_layout()
 
@@ -54,8 +54,10 @@ def Auswertung(file_roh, file_sigma):
     fig, ax = plt.subplots(figsize=(20,10))
     ax.set_xlabel('True Value')
     ax.set_ylabel('Inferred Value')
-    ax.errorbar(truth[::16], inferred[::16], yerr = sigma[::16], fmt='o')
-    ax.plot([min(truth[::16]+inferred[::16]),max(truth[::16]+inferred[::16])],[min(truth[::16]+inferred[::16]),max(truth[::16]+inferred[::16])], color='black', linestyle='--')
+    ax.set_xlim(0, 0.05)
+    ax.set_ylim(0, 0.05)
+    ax.errorbar(truth[15::16], inferred[15::16], yerr = sigma[15::16], fmt='o')
+    ax.plot([min(truth[15::16]+inferred[15::16]),max(truth[15::16]+inferred[15::16])],[min(truth[15::16]+inferred[15::16]),max(truth[15::16]+inferred[15::16])], color='black', linestyle='--')
     ax.grid()
     fig.tight_layout()
 
@@ -126,4 +128,4 @@ def Auswertung(file_roh, file_sigma):
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_6_un_50.csv', 'data_sigma_6_un_50.csv')
+Auswertung('data_roh_6_ln_100.csv', 'data_sigma_6_ln_100.csv')
