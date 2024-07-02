@@ -198,7 +198,7 @@ def test_mgvi(s, ns = 6):
 
     # Now lets run the main inference scheme:
     n_vi_iterations = ns
-    delta = 1e-6
+    delta = 1e-4
     n_samples = 10
 
     key, k_i, k_o = random.split(key, 3)
