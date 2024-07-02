@@ -147,11 +147,11 @@ def Auswertung(file_roh, file_sigma):
     mrd, emrd, brd, ebrd, chiqrd, ndofrd = linreg(truthr[1::2], inferredr[1::2], stdr[1::2])
     ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[::1], inferreds[::1], stds[::1])
 
-    residuenplot('True Value', '1', truthr[0::2], 0, 'Inferred Value', '1', inferredr[0::2], stdr[0::2], mrs, brs, chiqrs, namep='Roh_s eigenerSolver(120) samples(10) Uniform', savep=False)
-    residuenplot('True Value', '1', truthr[1::2], 0, 'Inferred Value', '1', inferredr[1::2], stdr[1::2], mrd, brd, chiqrd, namep='Roh_d eigenerSolver(120) samples(10) Uniform', savep=False)
-    residuenplot('True Value', '1', truths[::1], 0, 'Inferred Value', '1', inferreds[::1], stds[::1], ms, bs, chiqs, namep='Sigma_s eigenerSolver(120) samples(10) Uniform', savep=False)
+    residuenplot('True Value', '1', truthr[0::2], 0, 'Inferred Value', '1', inferredr[0::2], stdr[0::2], mrs, brs, chiqrs, namep='Roh_s eigenerSolver(120) samples(20) Uniform', savep=False)
+    residuenplot('True Value', '1', truthr[1::2], 0, 'Inferred Value', '1', inferredr[1::2], stdr[1::2], mrd, brd, chiqrd, namep='Roh_d eigenerSolver(120) samples(20) Uniform', savep=False)
+    residuenplot('True Value', '1', truths[::1], 0, 'Inferred Value', '1', inferreds[::1], stds[::1], ms, bs, chiqs, namep='Sigma_s eigenerSolver(120) samples(20) Uniform', savep=False)
 
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_unreal_u_small.csv', 'data_sigma_unreal_u_small.csv')
+Auswertung('data_roh_unreal_u_small_more.csv', 'data_sigma_unreal_u_small_more.csv')
