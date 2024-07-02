@@ -13,8 +13,6 @@ import pandas as pd
 import time
 jax.config.update("jax_enable_x64", True)
 
-t0 = time.time()
-
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
 plt.rcParams['font.family'] = 'sans-serif'
@@ -29,8 +27,8 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
                             #Umrechnung, sodass z in parsec
 
-n = 1200
-dz = 1.
+n = 120
+dz = 10.
 
 i1 = int(200/1200 * n)
 i2 = n
@@ -87,7 +85,6 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
     return uz
 
 #Berechnung des tracer density drop off
-#neu:lax.scan()
 @partial(jit, static_argnames=['i1', 'i2', 'i3'])
 def vdfo_norm(i1, i2, i3, z0, dz, uz):
     
@@ -139,17 +136,15 @@ esigmas = jnp.array([   1., 1., 1.,
                         2., 2., 5.,
                         5., 5., 10.])
 
-for k in range(1):
-    exec(f'roh_{k+1} = jft.LogNormalPrior(rohs[{k}], erohs[{k}], name="roh_{k+1}".format({k}), shape=(1,))')
-    exec(f'sigma_{k+1} = jft.LogNormalPrior(sigmas[{k}], esigmas[{k}], name="sigma_{k+1}".format({k}), shape=(1,))')
-
-roh_dm = jft.UniformPrior(0., 0.2, name="roh_dm", shape=(1,))
+roh_1 = jft.LogNormalPrior(0.01, 0.1, name="roh_1", shape=(1,))
+sigma_1 = jft.LogNormalPrior(12., 3., name="sigma_1", shape=(1,))
+roh_dm = jft.LogNormalPrior(0.02, 0.2, name="roh_dm", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
-        for k in range(1):
-            exec(f'self.roh_{k+1} = roh_{k+1}')
-            exec(f'self.sigma_{k+1} = sigma_{k+1}')
+
+        self.roh_1 = roh_1
+        self.sigma_1 = sigma_1
         self.roh_dm = roh_dm
 
         super().__init__(
@@ -165,7 +160,7 @@ class ForwardModel(jft.Model):
                     [roh_1[0], sigma_1[0]]])
             roh_dm = roh_dm[0]
 
-            uz = diffraxDopri5(roh_dm, params, z0, u0, f, n, dz)
+            uz = eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz)
 
             vdfo_norm_calc = vdfo_norm(i1, i2, i3, z0, dz, uz)
 
@@ -176,16 +171,14 @@ class ForwardModel(jft.Model):
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
 def test_mgvi(s, ns = 6):
+
     seed = s
     key = random.PRNGKey(seed)
-
     noise_cov = lambda x: 0.001 * x
     noise_cov_inv = lambda x: 1. / 0.001 * x
-
     key, subkey = random.split(key)
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
-
     key, subkey = random.split(key)
     noise_truth = (
         (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
@@ -202,7 +195,6 @@ def test_mgvi(s, ns = 6):
     # fig.tight_layout()
 
     lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
-
 
     # Now lets run the main inference scheme:
     n_vi_iterations = ns
@@ -249,19 +241,16 @@ def test_mgvi(s, ns = 6):
     # Reading out the physical input parameter values goes e.g. like this:
     results = {}
 
-    for k in range(1):
-        exec(f'results["rohs{k+1}"] = tuple(roh_{k+1}(s).tolist()[0] for s in samples)')
-        exec(f'results["sigmas{k+1}"] = tuple(sigma_{k+1}(s).tolist()[0] for s in samples)')
-        exec(f'results["roh{k+1}"] = jft.mean_and_std(results["rohs{k+1}"])')
-        exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
+    results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
+    results["sigmas1"] = tuple(sigma_1(s).tolist()[0] for s in samples)
+    results["roh1"] = jft.mean_and_std(results["rohs1"])
+    results["sigma1"] = jft.mean_and_std(results["sigmas1"])
     results["rohsdm"] = tuple(roh_dm(s).tolist()[0] for s in samples)
     results["rohdm"] = jft.mean_and_std(results["rohsdm"])
-    # Please save your results in some way:
-    # TODO
 
     truthr = [roh_1(pos_truth)[0], roh_dm(pos_truth)[0]]
-    meanr = [results[f'roh{k+1}'][0] for k in range(1)] + [results['rohdm'][0]]
-    stdr = [results[f'roh{k+1}'][1] for k in range(1)] + [results['rohdm'][1]]
+    meanr = [results['roh1'][0]] + [results['rohdm'][0]]
+    stdr = [results['roh1'][1]] + [results['rohdm'][1]]
 
 
     data_roh = {
@@ -271,14 +260,14 @@ def test_mgvi(s, ns = 6):
 
         "Standard Deviation roh": stdr,
 
-        "Samples roh": [results[f'rohs{k+1}'] for k in range(1)] + [results['rohsdm']],
+        "Samples roh": [results[f'rohs1']] + [results['rohsdm']],
 
         "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
     }
 
     truths = [sigma_1(pos_truth)[0]]
-    means = [results[f'sigma{k+1}'][0] for k in range(1)]
-    stds = [results[f'sigma{k+1}'][1] for k in range(1)]
+    means = [results['sigma1'][0]]
+    stds = [results['sigma1'][1]]
 
 
     data_sigma = {
@@ -288,24 +277,21 @@ def test_mgvi(s, ns = 6):
 
         "Standard Deviation sigma": stds,
 
-        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(1)],
+        "Samples sigma": [results['sigmas1']],
 
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_1.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_1.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_unreal_ln.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_unreal_ln.csv', mode='a', header=False, index=False)
 
-    t1 = time.time()
-    print('Time:', t1-t0, 's')
-
-seed = 33
+seed = 55
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (20,), 1, 1000000)
+seeds = random.randint(subkey, (60,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
@@ -321,6 +307,9 @@ if has_duplicates(seeds):
 
 else:
     for s in seeds:
+        t0 = time.time()
         test_mgvi(s, 6)
+        t1 = time.time()
+        print('Time:', t1-t0, 's')
 
 
