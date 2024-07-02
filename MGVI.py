@@ -198,8 +198,8 @@ def test_mgvi(s, ns = 6):
 
     # Now lets run the main inference scheme:
     n_vi_iterations = ns
-    delta = 1e-4
-    n_samples = 20
+    delta = 1e-6
+    n_samples = 10
 
     key, k_i, k_o = random.split(key, 3)
     # NOTE, changing the number of samples always triggers a resampling even if
@@ -284,8 +284,8 @@ def test_mgvi(s, ns = 6):
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_unreal_u_small_more.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_unreal_u_small_more.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_unreal_u_small_better.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_unreal_u_small_better.csv', mode='a', header=False, index=False)
 
 seed = 55
 key = random.PRNGKey(seed)
