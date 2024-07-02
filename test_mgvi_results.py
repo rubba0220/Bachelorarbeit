@@ -37,11 +37,12 @@ def residuenplot(var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chi
     fig, axarray = plt.subplots(2, 1, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [5, 2]})
     plt.title(namep)
     axarray[0].errorbar(v_x, v_y, xerr=v_s_x, yerr=v_s_y, color='red', fmt='o', markeredgecolor='red', label='Messwerte')
-    axarray[0].set_xlim(0,0.02)
+    # axarray[0].set_xlim(0,0.02)
     axarray[0].set_xlabel('${0}$ / ${1}$'.format(var_x, unit_x))
     axarray[0].set_ylabel('${0}$ / ${1}$'.format(var_y, unit_y))
     axarray[0].plot(v_x, m*v_x+b, color='green', label='${0:.2f}*x+{1:.2f}$'.format(m, b))
     sigmaRes = np.sqrt((m*v_s_x)**2 + v_s_y**2)
+    axarray[0].plot([min(v_x), max(v_x)], [min(v_x), max(v_x)], color='black', linestyle='--', label='Erwartung')
     axarray[1].axhline(y=0., color='black', linestyle='--')
     axarray[1].errorbar(v_x, v_y-(m*v_x+b), yerr=sigmaRes, color='red', fmt='o', markeredgecolor='red')
     axarray[1].set_xlabel('${0}$ / ${1}$'.format(var_x, unit_x))
@@ -146,11 +147,11 @@ def Auswertung(file_roh, file_sigma):
     mrd, emrd, brd, ebrd, chiqrd, ndofrd = linreg(truthr[1::2], inferredr[1::2], stdr[1::2])
     ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[::1], inferreds[::1], stds[::1])
 
-    residuenplot('True Value', '1', truthr[0::2], 0, 'Inferred Value', '1', inferredr[0::2], stdr[0::2], mrs, brs, chiqrs, namep='Roh_s eigenerSolver(120) samples(10) LogNormal', savep=False)
-    residuenplot('True Value', '1', truthr[1::2], 0, 'Inferred Value', '1', inferredr[1::2], stdr[1::2], mrd, brd, chiqrd, namep='Roh_d eigenerSolver(120) samples(10) LogNormal', savep=False)
-    residuenplot('True Value', '1', truths[::1], 0, 'Inferred Value', '1', inferreds[::1], stds[::1], ms, bs, chiqs, namep='Sigma_s eigenerSolver(120) samples(10) LogNormal', savep=False)
+    residuenplot('True Value', '1', truthr[0::2], 0, 'Inferred Value', '1', inferredr[0::2], stdr[0::2], mrs, brs, chiqrs, namep='Roh_s eigenerSolver(120) samples(10) Uniform', savep=False)
+    residuenplot('True Value', '1', truthr[1::2], 0, 'Inferred Value', '1', inferredr[1::2], stdr[1::2], mrd, brd, chiqrd, namep='Roh_d eigenerSolver(120) samples(10) Uniform', savep=False)
+    residuenplot('True Value', '1', truths[::1], 0, 'Inferred Value', '1', inferreds[::1], stds[::1], ms, bs, chiqs, namep='Sigma_s eigenerSolver(120) samples(10) Uniform', savep=False)
 
     histogram2(abw, '10 Testdurchläufte', 'Abweichung in Stddevs', name='Plots/Fit_Sr', save=False)
 
 
-Auswertung('data_roh_unreal_ln.csv', 'data_sigma_unreal_ln.csv')
+Auswertung('data_roh_unreal_u_large.csv', 'data_sigma_unreal_u_large.csv')

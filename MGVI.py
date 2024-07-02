@@ -136,9 +136,9 @@ esigmas = jnp.array([   1., 1., 1.,
                         2., 2., 5.,
                         5., 5., 10.])
 
-roh_1 = jft.LogNormalPrior(0.01, 0.1, name="roh_1", shape=(1,))
-sigma_1 = jft.LogNormalPrior(12., 3., name="sigma_1", shape=(1,))
-roh_dm = jft.LogNormalPrior(0.02, 0.2, name="roh_dm", shape=(1,))
+roh_1 = jft.UniformPrior(0., 0.2, name="roh_1", shape=(1,))
+sigma_1 = jft.UniformPrior(12., 3., name="sigma_1", shape=(1,))
+roh_dm = jft.UniformPrior(0., 0.2, name="roh_dm", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -284,8 +284,8 @@ def test_mgvi(s, ns = 6):
 
     dfr = pd.DataFrame(data_roh)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_unreal_ln.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_unreal_ln.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_unreal_u_large.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_unreal_u_large.csv', mode='a', header=False, index=False)
 
 seed = 55
 key = random.PRNGKey(seed)
