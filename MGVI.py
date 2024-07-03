@@ -170,7 +170,8 @@ class ForwardModel(jft.Model):
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
-def test_mgvi(s, ns = 6):
+
+def test_mgvi(s, it):
 
     seed = s
     key = random.PRNGKey(seed)
@@ -179,137 +180,127 @@ def test_mgvi(s, ns = 6):
     key, subkey = random.split(key)
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
-    key, subkey = random.split(key)
-    noise_truth = (
-        (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
-    ) * jft.random_like(key, fwd.target) # random means white noise
-    data = fwd_truth + noise_truth
-
-    # #Visualisierung
-    # fig, ax = plt.subplots(figsize=(20,10))
-    # ax.set_xlabel('z/pc')
-    # #ax.set_yscale('log')
-    # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter([0.+i*dz for i in range(i1,i2)], [data], marker='o')
-    # ax.grid()
-    # fig.tight_layout()
-
-    lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
-
-    # Now lets run the main inference scheme:
-    n_vi_iterations = ns
-    delta = 1e-4
-    n_samples = 10
-
-    key, k_i, k_o = random.split(key, 3)
-    # NOTE, changing the number of samples always triggers a resampling even if
-    # `resamples=False`, as more samples have to be drawn that did not exist before.
-    samples, state = jft.optimize_kl(
-        lh,
-        jft.Vector(lh.init(k_i)),
-        n_total_iterations=n_vi_iterations,
-        n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
-        # Source for the stochasticity for sampling
-        key=k_o,
-        # Arguments for the conjugate gradient method used to drawing samples from
-        # an implicit covariance matrix
-        draw_linear_kwargs=dict(
-            cg_name="SL",
-            cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
-        ),
-        # Arguements for the minimizer in the nonlinear updating of the samples
-        nonlinearly_update_kwargs=dict(
-            minimize_kwargs=dict(
-                name="SN",
-                xtol=delta,
-                cg_kwargs=dict(name=None),
-                maxiter=5,
-            )
-        ),
-        # Arguments for the minimizer of the KL-divergence cost potential
-        kl_kwargs=dict(
-            minimize_kwargs=dict(
-                name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
-            )
-        ),
-        sample_mode="nonlinear_resample",
-        odir="./results_test",
-        resume=False,
-    )
-
-    # Now the samples-object contains all the abstract parameters that were inferred
-    # Reading out the physical input parameter values goes e.g. like this:
-    results = {}
-
-    results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
-    results["sigmas1"] = tuple(sigma_1(s).tolist()[0] for s in samples)
-    results["roh1"] = jft.mean_and_std(results["rohs1"])
-    results["sigma1"] = jft.mean_and_std(results["sigmas1"])
-    results["rohsdm"] = tuple(roh_dm(s).tolist()[0] for s in samples)
-    results["rohdm"] = jft.mean_and_std(results["rohsdm"])
-
-    truthr = [roh_1(pos_truth)[0], roh_dm(pos_truth)[0]]
-    meanr = [results['roh1'][0]] + [results['rohdm'][0]]
-    stdr = [results['roh1'][1]] + [results['rohdm'][1]]
-
-
-    data_roh = {
-        "True Value roh": truthr,
-
-        "Inferred Value roh": meanr,
-
-        "Standard Deviation roh": stdr,
-
-        "Samples roh": [results[f'rohs1']] + [results['rohsdm']],
-
-        "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
-    }
-
-    truths = [sigma_1(pos_truth)[0]]
-    means = [results['sigma1'][0]]
-    stds = [results['sigma1'][1]]
-
-
-    data_sigma = {
-        "True Value sigma": truths,
-
-        "Inferred Value sigma": means,
-
-        "Standard Deviation sigma": stds,
-
-        "Samples sigma": [results['sigmas1']],
-
-        "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
-    }
-
-    dfr = pd.DataFrame(data_roh)
-    dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_roh_unreal_u_small_better.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_unreal_u_small_better.csv', mode='a', header=False, index=False)
-
-seed = 55
-key = random.PRNGKey(seed)
-
-key, subkey = random.split(key)
-seeds = random.randint(subkey, (60,), 1, 1000000)
-
-def has_duplicates(arr):
-    seen = set()
-    for element in arr:
-        element = int(element)
-        if element in seen:
-            return True
-        seen.add(element)
-    return False
-
-if has_duplicates(seeds):
-    print("Das Array enthält doppelte Elemente.")
-
-else:
-    for s in seeds:
+    for i in range(it):
+        
         t0 = time.time()
-        test_mgvi(s, 6)
+
+        key, subkey = random.split(key)
+        noise_truth = (
+            (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
+        ) * jft.random_like(key, fwd.target) # random means white noise
+        data = fwd_truth + noise_truth
+
+        # #Visualisierung
+        # fig, ax = plt.subplots(figsize=(20,10))
+        # ax.set_xlabel('z/pc')
+        # #ax.set_yscale('log')
+        # ax.set_ylabel('$\\nu / \\nu_0 $')
+        # ax.scatter([0.+i*dz for i in range(i1,i2)], [data], marker='o')
+        # ax.grid()
+        # fig.tight_layout()
+
+        lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
+
+        # Now lets run the main inference scheme:
+        n_vi_iterations = 6
+        delta = 1e-4
+        n_samples = 10
+
+        key, k_i, k_o = random.split(key, 3)
+        # NOTE, changing the number of samples always triggers a resampling even if
+        # `resamples=False`, as more samples have to be drawn that did not exist before.
+        samples, state = jft.optimize_kl(
+            lh,
+            jft.Vector(lh.init(k_i)),
+            n_total_iterations=n_vi_iterations,
+            n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+            # Source for the stochasticity for sampling
+            key=k_o,
+            # Arguments for the conjugate gradient method used to drawing samples from
+            # an implicit covariance matrix
+            draw_linear_kwargs=dict(
+                cg_name="SL",
+                cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+            ),
+            # Arguements for the minimizer in the nonlinear updating of the samples
+            nonlinearly_update_kwargs=dict(
+                minimize_kwargs=dict(
+                    name="SN",
+                    xtol=delta,
+                    cg_kwargs=dict(name=None),
+                    maxiter=5,
+                )
+            ),
+            # Arguments for the minimizer of the KL-divergence cost potential
+            kl_kwargs=dict(
+                minimize_kwargs=dict(
+                    name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+                )
+            ),
+            sample_mode="nonlinear_resample",
+            odir="./results_test",
+            resume=False,
+        )
+
+        # Now the samples-object contains all the abstract parameters that were inferred
+        # Reading out the physical input parameter values goes e.g. like this:
+        results = {}
+
+        results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
+        results["sigmas1"] = tuple(sigma_1(s).tolist()[0] for s in samples)
+        results["roh1"] = jft.mean_and_std(results["rohs1"])
+        results["sigma1"] = jft.mean_and_std(results["sigmas1"])
+        results["rohsdm"] = tuple(roh_dm(s).tolist()[0] for s in samples)
+        results["rohdm"] = jft.mean_and_std(results["rohsdm"])
+
+        truthr = [roh_1(pos_truth)[0], roh_dm(pos_truth)[0]]
+        meanr = [results['roh1'][0]] + [results['rohdm'][0]]
+        stdr = [results['roh1'][1]] + [results['rohdm'][1]]
+
+
+        data_roh = {
+            "True Value roh": truthr,
+
+            "Inferred Value roh": meanr,
+
+            "Standard Deviation roh": stdr,
+
+            "Samples roh": [results[f'rohs1']] + [results['rohsdm']],
+
+            "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
+        }
+
+        truths = [sigma_1(pos_truth)[0]]
+        means = [results['sigma1'][0]]
+        stds = [results['sigma1'][1]]
+
+
+        data_sigma = {
+            "True Value sigma": truths,
+
+            "Inferred Value sigma": means,
+
+            "Standard Deviation sigma": stds,
+
+            "Samples sigma": [results['sigmas1']],
+
+            "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
+        }
+
+        dfr = pd.DataFrame(data_roh)
+        dfs = pd.DataFrame(data_sigma)
+        dfr.to_csv(f'data_roh_start_cond_{seed}.csv', mode='a', header=False, index=False)
+        dfs.to_csv(f'data_sigma_start_cond_{seed}.csv', mode='a', header=False, index=False)
+        
         t1 = time.time()
         print('Time:', t1-t0, 's')
+
+seed = 78
+key = random.PRNGKey(seed)
+key, subkey = random.split(key)
+seeds = random.randint(subkey, (15,), 0, 1000)
+for seed in seeds:
+    test_mgvi(seed, 10)
+
 
 
