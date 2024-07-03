@@ -90,20 +90,35 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 # print('data_....csv')
 # Auswertung('data_roh.csv', 'data_sigma.csv', name='eigener (120) lognormal/uniform iter(6) samp(10) delt(1e-4)')
 # print('')
+
+
+
 # print('data_..._3.csv')
 # Auswertung('data_roh_3.csv', 'data_sigma_3.csv', name='eigener (120) lognormal/uniform iter(3) samp(10) delt(1e-4)')
 # print('')
-#Hier gibt es Ausreißer
+
 # print('data_..._9.csv')
 # Auswertung('data_roh_9.csv', 'data_sigma_9.csv', name='eigener (120) lognormal/uniform iter(9) samp(10) delt(1e-4)')
 # print('')
-#Hier gibt es Ausreißer
+
 # print('data_..._6.csv')
 # Auswertung('data_roh_6.csv', 'data_sigma_6.csv', name='eigener (120) lognormal/uniform iter(6) samp(10) delt(1e-4)')
 # print('')
-#Hier gibt es Ausreißer
-print('data_..._10.csv')
-Auswertung('data_roh_10.csv', 'data_sigma_10.csv', name='eigener (120) lognormal/uniform iter(6) samp(10) delt(1e-4)')
-print('')
+
+# data_..._10.csv' ist unnötig: n_samples = 10 bei dem seed der ausreißt
+
+# print('data_..._6_ln.csv')
+# Auswertung('data_roh_6_ln.csv', 'data_sigma_6_ln.csv', name='eigener (120) lognormal iter(6) samp(10) delt(1e-4)')
+# print('')
+
+# print('data_..._6_ln_100.csv')
+# Auswertung('data_roh_6_ln_100.csv', 'data_sigma_6_ln_100.csv', name='eigener (120) lognormal iter(6) samp(10) delt(1e-4)')
+# print('')
+
+# print('data_..._6_un_50.csv')
+# Auswertung('data_roh_6_un_50.csv', 'data_sigma_6_un_50.csv', name='eigener (120) uniform iter(6) samp(50) delt(1e-4)')
+# print('')
+
+
 
 
