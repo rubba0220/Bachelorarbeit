@@ -184,7 +184,7 @@ def test_mgvi(s, it):
         
         t0 = time.time()
 
-        key, subkey = random.split(key)
+        key, subkey = random.split(key) #cant be outside. Why???
         noise_truth = (
             (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
         ) * jft.random_like(key, fwd.target) # random means white noise
