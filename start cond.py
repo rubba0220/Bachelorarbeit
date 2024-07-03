@@ -57,23 +57,28 @@ def Auswertung(file_roh, file_sigma, name):
     print('Mean Sigma: ', means, 'Scatter: ', scats, 'stddev: ', stds, 'true: ', truths[0])
     print('')
 
-    plot_start_cond(inferredr[0::2], stdr[0::2], truthr[0], 'Rho_s ' + name, [0.08, 0.12])
-    plot_start_cond(inferredr[1::2], stdr[1::2], truthr[1], 'Rho_d ' + name, [0., 0.05])
-    plot_start_cond(inferreds, stds, truths[0], 'sigma ' + name, [3., 12.])
+    plot_start_cond(inferredr[0::2], stdr[0::2], truthr[0], 'Rho_s ' + name, [0., 0.5])
+    plot_start_cond(inferredr[1::2], stdr[1::2], truthr[1], 'Rho_d ' + name, [0., 0.2])
+    plot_start_cond(inferreds, stds, truths[0], 'sigma ' + name, [3., 17.])
 
-    return jnp.array([[meanrs, scatrs, stdrs, truthr[0]], [meanrd, scatrd, stdrd, truthr[1]], [means, scats, stds, truths[0]]])
+    return meanrs, scatrs, stdrs, truthr[0], meanrd, scatrd, stdrd, truthr[1], means, scats, stds, truths[0]
 
 # #testdurchläufe
 # Auswertung('data_roh_start_cond_102.csv', 'data_sigma_start_cond_102.csv', 'seed=102') 
 # Auswertung('data_roh_start_cond_99.csv', 'data_sigma_start_cond_99.csv', 'seed=99')
 # Auswertung('data_roh_start_cond_58.csv', 'data_sigma_start_cond_58.csv', 'seed=58')
 
-seeds = [58, 99, 102, 137, 474, 571, 656, 928, 56, 916, 60, 81, 175, 313, 325, 338, 926, 947]
-values = []
-for i in seeds:
-    a = Auswertung('data_roh_start_cond_' + str(i) + '.csv', 'data_sigma_start_cond_' + str(i) + '.csv', 'seed=' + str(i))
-    values += [a]
+seeds = [56, 81, 137, 338, 474, 571, 656, 916, 928]
 
-print(values)
+values = pd.DataFrame(columns=['meanrs', 'scatrs', 'stdrs', 'truthr', 'meanrd', 'scatrd', 'stdrd', 'truthr', 'means', 'scats', 'stds', 'truths'])
+ind = 0
+for i in seeds:
+    meanrs, scatrs, stdrs, truthr, meanrd, scatrd, stdrd, truthr, means, scats, stds, truths = Auswertung('data_roh_start_cond_' + str(i) + '.csv', 'data_sigma_start_cond_' + str(i) + '.csv', 'seed=' + str(i))
+
+    values.loc[ind] = [meanrs, scatrs, stdrs, truthr, meanrd, scatrd, stdrd, truthr, means, scats, stds, truths]
+    ind += 1
+    
+
+values.to_csv('values_start_cond.csv', index=False)
 
 

@@ -136,9 +136,9 @@ esigmas = jnp.array([   1., 1., 1.,
                         2., 2., 5.,
                         5., 5., 10.])
 
-roh_1 = jft.UniformPrior(0.08, 0.12, name="roh_1", shape=(1,))
-sigma_1 = jft.UniformPrior(12., 3., name="sigma_1", shape=(1,))
-roh_dm = jft.UniformPrior(0., 0.05, name="roh_dm", shape=(1,))
+roh_1 = jft.UniformPrior(0.001, 0.5, name="roh_1", shape=(1,))
+sigma_1 = jft.UniformPrior(3., 17., name="sigma_1", shape=(1,))
+roh_dm = jft.UniformPrior(0., 0.2, name="roh_dm", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
