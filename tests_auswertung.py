@@ -79,18 +79,11 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
     inferreds = jnp.array(data_sigma.iloc[:,1])
     stds = jnp.array(data_sigma.iloc[:,2])
 
-    mrs, emrs, brs, ebrs, chiqrs, ndofrs = linreg(truthr[0::2], inferredr[0::2], stdr[0::2])
-    mrd, emrd, brd, ebrd, chiqrd, ndofrd = linreg(truthr[1::2], inferredr[1::2], stdr[1::2])
-    ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[::1], inferreds[::1], stds[::1])
+    mrs, emrs, brs, ebrs, chiqrs, ndofrs = linreg(truthr, inferredr, stdr)
+    ms, ems, bs, ebs, chiqs, ndofs = linreg(truths, inferreds, stds)
 
-    residuenplot('True Value', 'a.u.', truthr[0::2], 0, 'Inferred Value', 'a.u.', inferredr[0::2], stdr[0::2], mrs, brs, chiqrs, name='Rho_s ' + name, save=False, Zoom = Zoom)
-    residuenplot('True Value', 'a.u.', truthr[1::2], 0, 'Inferred Value', 'a.u.', inferredr[1::2], stdr[1::2], mrd, brd, chiqrd, name='Rho_d ' + name, save=False, Zoom = Zoom)
-    residuenplot('True Value', 'a.u.', truths[::1], 0, 'Inferred Value', 'a.u.', inferreds[::1], stds[::1], ms, bs, chiqs, name='Sigma ' + name, save=False)
+    residuenplot('True Value', 'a.u.', truthr, 0, 'Inferred Value', 'a.u.', inferredr, stdr, mrs, brs, chiqrs, name='Rho_s ' + name, save=False, Zoom = Zoom)
+    residuenplot('True Value', 'a.u.', truths, 0, 'Inferred Value', 'a.u.', inferreds, stds, ms, bs, chiqs, name='Sigma ' + name, save=False, Zoom = Zoom)
 
 
-Auswertung('data_roh_unreal_u_large.csv', 'data_sigma_unreal_u_large.csv', name='eigener (120) uniform(large) iter(6) samp(10) delt(1e-4)')
-Auswertung('data_roh_unreal_u_small.csv', 'data_sigma_unreal_u_small.csv', name='eigener (120) uniform(small) iter(6) samp(10) delt(1e-4)')
-Auswertung('data_roh_unreal_u_small_more.csv', 'data_sigma_unreal_u_small_more.csv', name='eigener (120) uniform(small) iter(6) samp(20) delt(1e-4)')
-Auswertung('data_roh_unreal_u_small_better.csv', 'data_sigma_unreal_u_small_better.csv', name='eigener (120) uniform(small) iter(6) samp(10) delt(1e-6)')
-Auswertung('data_roh_unreal_ln.csv', 'data_sigma_unreal_ln.csv', name='eigener (120) lognormal iter(6) samp(10) delt(1e-4)')
-Auswertung('data_roh_unreal_ln.csv', 'data_sigma_unreal_ln.csv', name='eigener (120) lognormal iter(6) samp(10) delt(1e-4)', Zoom = [0, 0.02])
+Auswertung('data_roh_simp.csv', 'data_sigma_simp.csv', name='simple_DGL', Zoom = None)
