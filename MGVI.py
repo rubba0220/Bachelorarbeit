@@ -40,30 +40,6 @@ f = lambda roh_dm, params, z, u: jnp.array([u[1], \
 z0 = 0.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
-#numerische Lösung (mittels Dopri5/rk4)
-@partial(jit, static_argnames=['f', 'n']) 
-def diffraxDopri5(roh_dm, params, z0, u0, f, n, dz):
-
-    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
-    term = ODETerm(vector_field)
-    solver = Dopri5()
-    saveat = SaveAt(ts=jnp.linspace(0, n*dz, n))
-    stepsize_controller = PIDController(rtol=1e-3, atol=1e-6)
-    adjoint = DirectAdjoint()
-
-    sol = diffeqsolve(term, solver, t0=z0, t1=z0+n*dz, dt0=dz, y0=u0,
-                        args=(roh_dm, params),
-                    saveat=saveat,
-                    stepsize_controller=stepsize_controller,
-                    adjoint = adjoint, throw=False)
-                    #max_steps=65536)
-
-    #zs = sol.ts
-    uz = sol.ys
-
-    return uz
-
-@partial(jit, static_argnames=['f', 'n']) 
 def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
                                                         
     # Runge-Kutta 4. Ordnung
@@ -85,7 +61,6 @@ def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
     return uz
 
 #Berechnung des tracer density drop off
-@partial(jit, static_argnames=['i1', 'i2', 'i3'])
 def vdfo_norm(i1, i2, i3, z0, dz, uz):
     
     #mock velocity dispersion function
@@ -156,6 +131,59 @@ class ForwardModel(jft.Model):
         rdm = self.roh_dm(x)
 
         def complicated_function(roh_1, sigma_1, roh_dm):
+
+            #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
+            f = lambda roh_dm, params, z, u: jnp.array([u[1], \
+                        4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + roh_dm)])
+            z0 = 0.
+            u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
+
+            def eigenerSolverV2(roh_dm, params, z0, u0, f, n, dz):
+                                                                    
+                # Runge-Kutta 4. Ordnung
+                # @partial(jit, static_argnames=['f']) #nötig ??
+                def rk4_step(roh_dm, params, z0, u0, dz, f):
+                    k1 = dz * f(roh_dm, params, z0, u0)
+                    k2 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k1 / 2)
+                    k3 = dz * f(roh_dm, params, z0 + dz / 2, u0 + k2 / 2)
+                    k4 = dz * f(roh_dm, params, z0 + dz, u0 + k3)
+                    u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+                    return u1
+
+                def rk4_step_scan(u, i):
+                    return rk4_step(roh_dm, params, z0+i*dz, u, dz, f), \
+                        rk4_step(roh_dm, params, z0+i*dz, u, dz, f)
+
+                _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
+
+                return uz
+
+            #Berechnung des tracer density drop off
+            def vdfo_norm(i1, i2, i3, z0, dz, uz):
+                
+                #mock velocity dispersion function
+                def sigma(z):
+                    return 20. + 17.*z/1000. #z in pc, sigma in km/s
+                
+                zs = jnp.linspace(z0+i1*dz, z0+(i2-1)*dz, i2-i1)
+                sigma_sq_norm = (sigma(zs)/sigma(z0+i3*dz))**(2)
+                zss = jnp.linspace(z0+i3*dz, z0+(i1-1)*dz, i1-i3)
+                sigmass = sigma(zss)
+
+                exp_int = jnp.exp(-jnp.sum(\
+                            sigmass**(-2) \
+                            * jnp.array(uz)[i3:i1,1] * dz))
+
+                def exp_int_step(exp_int, i):
+                    return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
+                            exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
+
+                _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i1, i2, 1))
+
+                vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
+
+                return vdfo_norm_calc
+
             params = jnp.array([
                     [roh_1[0], sigma_1[0]]])
             roh_dm = roh_dm[0]
