@@ -54,7 +54,7 @@ def eigenerSolverV2(params, z0, u0, f, n, dz):
 ''' Test des Algorithmus zur MGVI '''
 
 roh_1 = jft.UniformPrior(0.0001, 0.001, name="roh_1", shape=(1,))
-sigma_1 = jft.UniformPrior(0.00001, 0.0001, name="sigma", shape=(1,))
+sigma_1 = jft.UniformPrior(0.00001, 0.0001, name="sigma_1", shape=(1,))
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -80,123 +80,127 @@ class ForwardModel(jft.Model):
         return complicated_function(r1, s1)
 
 # This initialises your forward-model which computes something data-like
+
 fwd = ForwardModel()
 
-def test_mgvi(s):
+seed = 4
+key = random.PRNGKey(seed)
+noise_cov = lambda x: 0.1 * x
+noise_cov_inv = lambda x: 1. / 0.1 * x
+key, subkey = random.split(key)
+pos_truth = jft.random_like(subkey, fwd.domain)
+fwd_truth = fwd(pos_truth)
 
-    seed = s
-    key = random.PRNGKey(seed)
-    noise_cov = lambda x: 0.1 * x
-    noise_cov_inv = lambda x: 1. / 0.1 * x
-    key, subkey = random.split(key)
-    pos_truth = jft.random_like(subkey, fwd.domain)
-    fwd_truth = fwd(pos_truth)
+key, subkey = random.split(key)
+noise_truth = (
+    (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
+) * jft.random_like(subkey, fwd.target) # random means white noise
+data = fwd_truth + noise_truth
 
-    key, subkey = random.split(key)
-    noise_truth = (
-        (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
-    ) * jft.random_like(key, fwd.target) # random means white noise
-    data = fwd_truth + noise_truth
+#Visualisierung
+fig, ax = plt.subplots(figsize=(20,10))
+ax.set_xlabel('z/pc')
+#ax.set_yscale('log')
+ax.set_ylabel('$\\nu / \\nu_0 $')
+ax.scatter([0.+i*dz for i in range(n)], [data], marker='o')
+ax.grid()
+fig.tight_layout()
+plt.show()
 
-    #Visualisierung
-    fig, ax = plt.subplots(figsize=(20,10))
-    ax.set_xlabel('z/pc')
-    #ax.set_yscale('log')
-    ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter([0.+i*dz for i in range(n)], [data], marker='o')
-    ax.grid()
-    fig.tight_layout()
-    plt.show()
+lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
-    lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
+# Now lets run the main inference scheme:
+n_vi_iterations = 6
+delta = 1e-4
+n_samples = 10
 
-    # Now lets run the main inference scheme:
-    n_vi_iterations = 6
-    delta = 1e-4
-    n_samples = 10
+key, k_i, k_o = random.split(key, 3)
+# NOTE, changing the number of samples always triggers a resampling even if
+# `resamples=False`, as more samples have to be drawn that did not exist before.
+samples, state = jft.optimize_kl(
+    lh,
+    jft.Vector(lh.init(k_i)),
+    n_total_iterations=n_vi_iterations,
+    n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+    # Source for the stochasticity for sampling
+    key=k_o,
+    # Arguments for the conjugate gradient method used to drawing samples from
+    # an implicit covariance matrix
+    draw_linear_kwargs=dict(
+        cg_name="SL",
+        cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+    ),
+    # Arguements for the minimizer in the nonlinear updating of the samples
+    nonlinearly_update_kwargs=dict(
+        minimize_kwargs=dict(
+            name="SN",
+            xtol=delta,
+            cg_kwargs=dict(name=None),
+            maxiter=5,
+        )
+    ),
+    # Arguments for the minimizer of the KL-divergence cost potential
+    kl_kwargs=dict(
+        minimize_kwargs=dict(
+            name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+        )
+    ),
+    sample_mode="nonlinear_resample",
+    odir="./results_test",
+    resume=False,
+)
 
-    key, k_i, k_o = random.split(key, 3)
-    # NOTE, changing the number of samples always triggers a resampling even if
-    # `resamples=False`, as more samples have to be drawn that did not exist before.
-    samples, state = jft.optimize_kl(
-        lh,
-        jft.Vector(lh.init(k_i)),
-        n_total_iterations=n_vi_iterations,
-        n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
-        # Source for the stochasticity for sampling
-        key=k_o,
-        # Arguments for the conjugate gradient method used to drawing samples from
-        # an implicit covariance matrix
-        draw_linear_kwargs=dict(
-            cg_name="SL",
-            cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
-        ),
-        # Arguements for the minimizer in the nonlinear updating of the samples
-        nonlinearly_update_kwargs=dict(
-            minimize_kwargs=dict(
-                name="SN",
-                xtol=delta,
-                cg_kwargs=dict(name=None),
-                maxiter=5,
-            )
-        ),
-        # Arguments for the minimizer of the KL-divergence cost potential
-        kl_kwargs=dict(
-            minimize_kwargs=dict(
-                name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
-            )
-        ),
-        sample_mode="nonlinear_resample",
-        odir="./results_test",
-        resume=False,
-    )
+# Now the samples-object contains all the abstract parameters that were inferred
+# Reading out the physical input parameter values goes e.g. like this:
+results = {}
 
-    # Now the samples-object contains all the abstract parameters that were inferred
-    # Reading out the physical input parameter values goes e.g. like this:
-    results = {}
+results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
+results["roh1"] = jft.mean_and_std(results["rohs1"])
+results["sigmas1"] = tuple(sigma_1(s).tolist()[0] for s in samples)
+results["sigma1"] = jft.mean_and_std(results["sigmas1"])
 
-    results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
-    results["roh1"] = jft.mean_and_std(results["rohs1"])
-    results["sigmas1"] = tuple(sigma_1(s).tolist()[0] for s in samples)
-    results["sigma1"] = jft.mean_and_std(results["sigmas1"])
+truthr = [roh_1(pos_truth)[0]]
+meanr = [results['roh1'][0]]
+stdr = [results['roh1'][1]]
 
-    truthr = [roh_1(pos_truth)[0]]
-    meanr = [results['roh1'][0]]
-    stdr = [results['roh1'][1]]
+truths = [sigma_1(pos_truth)[0]]
+means = [results['sigma1'][0]]
+stds = [results['sigma1'][1]]
 
-    truths = [sigma_1(pos_truth)[0]]
-    means = [results['sigma1'][0]]
-    stds = [results['sigma1'][1]]
+data_roh = {
+    "True Value roh": truthr,
 
-    data_roh = {
-        "True Value roh": truthr,
+    "Inferred Value roh": meanr,
 
-        "Inferred Value roh": meanr,
+    "Standard Deviation roh": stdr,
 
-        "Standard Deviation roh": stdr,
+    "Samples roh": [results[f'rohs1']],# + [results['rohsdm']],
 
-        "Samples roh": [results[f'rohs1']],# + [results['rohsdm']],
+    "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
+}
 
-        "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
-    }
+data_sigma = {
+    "True Value sigma": truths,
 
-    data_sigma = {
-        "True Value sigma": truths,
+    "Inferred Value sigma": means,
 
-        "Inferred Value sigma": means,
+    "Standard Deviation sigma": stds,
 
-        "Standard Deviation sigma": stds,
+    "Samples sigma": [results[f'sigmas1']],# + [results['sigmasdm']],
 
-        "Samples sigma": [results[f'sigmas1']],# + [results['sigmasdm']],
+    "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
+}
 
-        "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
-    }
+dfr = pd.DataFrame(data_roh)
+dfr.to_csv(f'data_roh_simp_3.csv', mode='a', header=False, index=False)
+dfs = pd.DataFrame(data_sigma)
+dfs.to_csv(f'data_sigma_simp_3.csv', mode='a', header=False, index=False)
 
-    dfr = pd.DataFrame(data_roh)
-    dfr.to_csv(f'data_roh_simp_3.csv', mode='a', header=False, index=False)
-    dfs = pd.DataFrame(data_sigma)
-    dfs.to_csv(f'data_sigma_simp_3.csv', mode='a', header=False, index=False)
 
-for i in range(10):
-    	test_mgvi(i)
+# for i in range(10):
+#     print(i)
+#     test(i)
 
+#seed = 3; jft.random_like(key, fwd.target) -> error
+#seed = 3; jft.random_like(subkey, fwd.target) -> kein error
+#seed = 4; jft.random_like(subkey, fwd.domain) -> error
