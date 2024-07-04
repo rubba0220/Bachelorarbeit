@@ -53,7 +53,7 @@ def eigenerSolverV2(params, z0, u0, f, n, dz):
 
 ''' Test des Algorithmus zur MGVI '''
 
-roh_1 = jft.UniformPrior(0.00001, 0.0001, name="roh_1", shape=(1,))
+roh_1 = jft.UniformPrior(0.0001, 0.001, name="roh_1", shape=(1,))
 sigma_1 = jft.UniformPrior(0.00001, 0.0001, name="sigma", shape=(1,))
 
 class ForwardModel(jft.Model):
@@ -106,6 +106,7 @@ def test_mgvi(s):
     ax.scatter([0.+i*dz for i in range(n)], [data], marker='o')
     ax.grid()
     fig.tight_layout()
+    plt.show()
 
     lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
@@ -192,9 +193,9 @@ def test_mgvi(s):
     }
 
     dfr = pd.DataFrame(data_roh)
-    dfr.to_csv(f'data_roh_simp.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_roh_simp_3.csv', mode='a', header=False, index=False)
     dfs = pd.DataFrame(data_sigma)
-    dfs.to_csv(f'data_sigma_simp.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_simp_3.csv', mode='a', header=False, index=False)
 
 for i in range(10):
     	test_mgvi(i)

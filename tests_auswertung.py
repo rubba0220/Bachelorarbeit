@@ -87,3 +87,5 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 
 
 Auswertung('data_roh_simp.csv', 'data_sigma_simp.csv', name='simple_DGL', Zoom = None)
+Auswertung('data_roh_simp_2.csv', 'data_sigma_simp_2.csv', name='simple_DGL_2', Zoom = None)
+Auswertung('data_roh_simp_3.csv', 'data_sigma_simp_3.csv', name='simple_DGL_3', Zoom = None)
