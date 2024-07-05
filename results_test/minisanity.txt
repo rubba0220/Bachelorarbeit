@@ -2829,3 +2829,14 @@ rho_dm                :: reduced χ²:     2.6±    0.58, avg:     -1.6±    0.1
 rho_s                 :: reduced χ²:     1.2±    0.31, avg:    +0.24±    0.24, #dof:     15
 sigma_s               :: reduced χ²:    0.92±    0.26, avg:   +0.054±    0.26, #dof:     15
 
+
+Post OptimizeVI: Iteration 0004 ⛰:+5.2087e+02
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 4
+Likelihood residual(s):
+reduced χ²:     1.0±  0.0016, avg:  +0.0046±   0.023, #dof:   1001
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.6±    0.43, avg:     -1.6±    0.13, #dof:      1
+rho_s                 :: reduced χ²:    0.99±    0.29, avg:    +0.26±    0.18, #dof:     15
+sigma_s               :: reduced χ²:     1.0±    0.41, avg:   +0.036±    0.27, #dof:     15
+
