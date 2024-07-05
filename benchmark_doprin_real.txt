@@ -1,0 +1,8 @@
+abw_mean_dopri   abw_max_dopri    n                 t_mean           t_std          
+NaN              NaN                 5             1.79e-04         1.75e-06        
+NaN              NaN                10             1.81e-04         1.52e-06        
+NaN              NaN                50             1.80e-04         9.22e-07        
+NaN              NaN               100             1.80e-04         1.38e-06        
+NaN              NaN               500             1.84e-04         2.46e-06        
+NaN              NaN              1000             1.88e-04         9.22e-07        
+NaN              NaN              2000             1.98e-04         1.15e-06        

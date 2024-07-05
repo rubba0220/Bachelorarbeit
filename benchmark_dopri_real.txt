@@ -1,0 +1,9 @@
+ atol            abw_mean_dopri   abw_max_dopri    n                 t_mean           t_std          
+1.00e-01         NaN              NaN                8              1.88e-04         8.51e-07        
+1.00e-02         NaN              NaN               10              1.89e-04         6.70e-07        
+1.00e-03         NaN              NaN               12              1.91e-04         1.23e-06        
+1.00e-04         NaN              NaN               15              1.91e-04         2.10e-06        
+1.00e-05         NaN              NaN               21              1.95e-04         1.32e-06        
+1.00e-06         NaN              NaN               30              1.98e-04         6.44e-07        
+1.00e-07         NaN              NaN               61              2.17e-04         1.76e-06        
+1.00e-08         NaN              NaN              351              4.86e-04         7.00e-06        

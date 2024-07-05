@@ -1,2 +1,2 @@
-abw_mean_eigen   abw_mean_dopri   abw_max_eigen    abw_max_dopri   
-7.748604e-07     1.2176378e-06    2.503395e-06     2.503395e-06    
+n                abw_mean_eigen   abw_max_eigen     t_mean           t_std          
+NaN              7.748604e-07     2.503395e-06     0.000008         1.245220e-07    
