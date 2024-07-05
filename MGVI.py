@@ -13,8 +13,6 @@ import pandas as pd
 import time
 jax.config.update("jax_enable_x64", True)
 
-t0 = time.time()
-
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
 plt.rcParams['font.family'] = 'sans-serif'
@@ -253,8 +251,8 @@ def test_mgvi(s):
     results = {}
 
     for k in range(15):
-        exec(f'results["rhos{k+1}"] = tuple(rho_s(s)[{k+1}].tolist() for s in samples)')
-        exec(f'results["sigmas{k+1}"] = tuple(sigma_s(s)[{k+1}].tolist() for s in samples)')
+        exec(f'results["rhos{k+1}"] = tuple(rho_s(s)[{k}].tolist() for s in samples)')
+        exec(f'results["sigmas{k+1}"] = tuple(sigma_s(s)[{k}].tolist() for s in samples)')
         exec(f'results["rho{k+1}"] = jft.mean_and_std(results["rhos{k+1}"])')
         exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
@@ -299,9 +297,6 @@ def test_mgvi(s):
     dfr.to_csv(f'data_rho.csv', mode='a', header=False, index=False)
     dfs.to_csv(f'data_sigma.csv', mode='a', header=False, index=False)
 
-    t1 = time.time()
-    print('Time:', t1-t0, 's')
-
 seed = 100000
 key = random.PRNGKey(seed)
 
@@ -322,6 +317,9 @@ if has_duplicates(seeds):
 
 else:
     for s in seeds:
+        t0 = time.time()
         test_mgvi(s)
+        t1 = time.time()
+        print('Time:', t1-t0, 's')
 
 
