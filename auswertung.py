@@ -87,7 +87,12 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
         ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
         residuenplot('True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
 
-Auswertung('data_rho.csv', 'data_sigma.csv', name='changes', Zoom = None)
+# Auswertung('data_rho.csv', 'data_sigma.csv', name='changes', Zoom = None)
+# Auswertung('data_rho_eigen_uniform.csv', 'data_sigma_eigen_uniform.csv', name='changes', Zoom = None)
+# Auswertung('data_rho_eigen_uniform2.csv', 'data_sigma_eigen_uniform2.csv', name='changes', Zoom = None)
+# Auswertung('data_rho_eigen_lognormal.csv', 'data_sigma_eigen_lognormal.csv', name='changes', Zoom = None)
+# Auswertung('data_rho_eigen_lognormal2.csv', 'data_sigma_eigen_lognormal2.csv', name='changes', Zoom = None)
+
 
 #jit fixes time difference with pure/impure complicated function
 #params als array
