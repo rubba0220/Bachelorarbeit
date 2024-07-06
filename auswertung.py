@@ -92,18 +92,24 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 # Auswertung('data_rho_eigen_uniform2.csv', 'data_sigma_eigen_uniform2.csv', name='changes', Zoom = None)
 # Auswertung('data_rho_eigen_lognormal.csv', 'data_sigma_eigen_lognormal.csv', name='changes', Zoom = None)
 # Auswertung('data_rho_eigen_lognormal2.csv', 'data_sigma_eigen_lognormal2.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_more.csv', 'data_sigma_more.csv', name='changes', Zoom = None)
+Auswertung('data_rho_more.csv', 'data_sigma_more.csv', name='changes', Zoom = None)
 
-data_roh = pd.read_csv('data_rho_more.csv', header=None)
 
-truthr = jnp.array(data_roh.iloc[:,0])
-inferredr = jnp.array(data_roh.iloc[:,1])
-stdr = jnp.array(data_roh.iloc[:,2])
-mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[15::16], inferredr[15::16], stdr[15::16])
-residuenplot('True Value', 'a.u.', truthr[15::16], 0, 'Inferred Value', 'a.u.', inferredr[15::16], stdr[15::16], mr, br, chiqr, name='Rho_dm ' + 'Ausreißer!', save=False, Zoom = None)
 
-print(max(abs((truthr-inferredr)/stdr)))
-print((jnp.where(abs((truthr-inferredr)/stdr) == max(abs((truthr-inferredr)/stdr)))[0]+1)/16)
+
+# data_roh = pd.read_csv('data_rho_more.csv', header=None)
+
+# truthr = jnp.array(data_roh.iloc[:,0])
+# inferredr = jnp.array(data_roh.iloc[:,1])
+# stdr = jnp.array(data_roh.iloc[:,2])
+# mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[15::16], inferredr[15::16], stdr[15::16])
+# residuenplot('True Value', 'a.u.', truthr[15::16], 0, 'Inferred Value', 'a.u.', inferredr[15::16], stdr[15::16], mr, br, chiqr, name='Rho_dm ' + 'Ausreißer!', save=False, Zoom = None)
+
+# print(max(abs((truthr-inferredr)/stdr)))
+# print((jnp.where(abs((truthr-inferredr)/stdr) == max(abs((truthr-inferredr)/stdr)))[0]+1)/16)
+
+
+
 
 #Ausreißer bei run 60, also pos 59
 
