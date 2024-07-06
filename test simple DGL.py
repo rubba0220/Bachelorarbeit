@@ -12,6 +12,8 @@ import pandas as pd
 
 import time
 jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_debug_nans", True)
+jax.config.update("jax_disable_jit", False)
 
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
@@ -56,6 +58,7 @@ def eigenerSolverV2(params, z0, u0, f, n, dz):
 roh_1 = jft.UniformPrior(0.0001, 0.001, name="roh_1", shape=(1,))
 sigma_1 = jft.UniformPrior(0.00001, 0.0001, name="sigma_1", shape=(1,))
 
+
 class ForwardModel(jft.Model):
     def __init__(self):
 
@@ -64,7 +67,7 @@ class ForwardModel(jft.Model):
 
         super().__init__(
             init =   self.roh_1.init | self.sigma_1.init)
-
+    @jit
     def __call__(self, x):
         r1 = self.roh_1(x)
         s1 = self.sigma_1(x)
@@ -90,6 +93,7 @@ noise_cov_inv = lambda x: 1. / 0.1 * x
 key, subkey = random.split(key)
 pos_truth = jft.random_like(subkey, fwd.domain)
 fwd_truth = fwd(pos_truth)
+print(roh_1(pos_truth), sigma_1(pos_truth))
 
 key, subkey = random.split(key)
 noise_truth = (
