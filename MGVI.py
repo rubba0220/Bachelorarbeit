@@ -192,15 +192,15 @@ def test_mgvi(s):
         (noise_cov(jft.ones_like(fwd.target))) ** 0.5) * jft.random_like(subkey, fwd.target)
     data = fwd_truth + noise_truth
 
-    #Visualisierung
-    dz = (z1-z0)/(n-1)
-    z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    fig, ax = plt.subplots(figsize=(20,10))
-    ax.set_xlabel('z/pc')
-    ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter(z, data, marker='o')
-    ax.grid()
-    fig.tight_layout()
+    # #Visualisierung
+    # dz = (z1-z0)/(n-1)
+    # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
+    # fig, ax = plt.subplots(figsize=(20,10))
+    # ax.set_xlabel('z/pc')
+    # ax.set_ylabel('$\\nu / \\nu_0 $')
+    # ax.scatter(z, data, marker='o')
+    # ax.grid()
+    # fig.tight_layout()
 
     lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
@@ -294,14 +294,14 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_rho.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_fail.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_fail.csv', mode='a', header=False, index=False)
 
-seed = 100000
+seed = 4
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (10,), 1, 1000000)
+seeds = random.randint(subkey, (75,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
@@ -315,11 +315,19 @@ def has_duplicates(arr):
 if has_duplicates(seeds):
     print("Das Array enthält doppelte Elemente.")
 
-else:
-    for s in seeds:
-        t0 = time.time()
-        test_mgvi(s)
-        t1 = time.time()
-        print('Time:', t1-t0, 's')
+# else:
+#     for s in seeds:
+#         t0 = time.time()
+#         test_mgvi(s)
+#         t1 = time.time()
+#         print('Time:', t1-t0, 's')
+
+print(seeds[59])
+
+#Ausreißer bei run 60, also pos 59 --> seed 390196
+
+test_mgvi(390196)
+
+
 
 
