@@ -7,10 +7,9 @@ from functools import partial
 from matplotlib import pyplot as plt
 from scipy import constants as const
 import nifty8.re as jft
-from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, DirectAdjoint
 import pandas as pd
-
 import time
+
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_debug_nans", True)
 jax.config.update("jax_disable_jit", False)
@@ -25,19 +24,19 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
-n = 120
-dz = 1.
+n = 121
 
 f = lambda params, z, u: jnp.array([u[1], -u[0]*params[0] + z*params[1]])
 z0 = 0.
+z1 = 120.
 u0 = jnp.array([1.,0.])
 
-@partial(jit, static_argnames=['f', 'n']) 
-def eigenerSolverV2(params, z0, u0, f, n, dz):
-                                                        
+@partial(jit, static_argnames=['f', 'n'])
+def eigenerSolverV2(params, z0, z1, u0, f, n):
+    dz = (z1-z0)/(n-1)
+
     # Runge-Kutta 4. Ordnung
-    # @partial(jit, static_argnames=['f']) #nötig ??
-    def rk4_step(params, z0, u0, dz, f):
+    def rk4_step(params, z0, dz, u0, f):
         k1 = dz * f(params, z0, u0)
         k2 = dz * f(params, z0 + dz / 2, u0 + k1 / 2)
         k3 = dz * f(params, z0 + dz / 2, u0 + k2 / 2)
@@ -45,19 +44,21 @@ def eigenerSolverV2(params, z0, u0, f, n, dz):
         u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
         return u1
 
-    def rk4_step_scan(u, i):
-        return rk4_step(params, z0+i*dz, u, dz, f), \
-            rk4_step(params, z0+i*dz, u, dz, f)
+    def rk4_step_scan(u, x):
+        return rk4_step(params, x, dz, u, f), \
+            rk4_step(params, x, dz, u, f)
 
-    _, uz = lax.scan(rk4_step_scan, u0, jnp.linspace(0, n*dz, n))
+    zs = jnp.linspace(z0, z1, n)
+    _, uz = lax.scan(rk4_step_scan, u0, zs[:-1])
+    uz = jnp.concatenate([jnp.array([u0]), uz], axis=0)
 
-    return uz
+    return uz, zs
+
 
 ''' Test des Algorithmus zur MGVI '''
 
 roh_1 = jft.UniformPrior(0.0001, 0.001, name="roh_1", shape=(1,))
 sigma_1 = jft.UniformPrior(0.00001, 0.0001, name="sigma_1", shape=(1,))
-
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -75,13 +76,13 @@ class ForwardModel(jft.Model):
         def complicated_function(roh_1, sigma_1):
             params = [roh_1[0], sigma_1[0]]
 
-            uz = eigenerSolverV2(params, z0, u0, f, n, dz)
+            uz, zs = eigenerSolverV2(params, z0, z1, u0, f, n)
             val = uz[:,0]
 
-            return val
+            return val[1:]
 
         return complicated_function(r1, s1)
-
+ 
 # This initialises your forward-model which computes something data-like
 
 fwd = ForwardModel()
@@ -96,20 +97,17 @@ fwd_truth = fwd(pos_truth)
 print(roh_1(pos_truth), sigma_1(pos_truth))
 
 key, subkey = random.split(key)
-noise_truth = (
-    (noise_cov(jft.ones_like(fwd.target))) ** 0.5 # sqrt to get from cov->std
-) * jft.random_like(subkey, fwd.target) # random means white noise
+noise_truth = ((noise_cov(jft.ones_like(fwd.target))) ** 0.5) * jft.random_like(subkey, fwd.target)
 data = fwd_truth + noise_truth
 
-#Visualisierung
-fig, ax = plt.subplots(figsize=(20,10))
-ax.set_xlabel('z/pc')
-#ax.set_yscale('log')
-ax.set_ylabel('$\\nu / \\nu_0 $')
-ax.scatter([0.+i*dz for i in range(n)], [data], marker='o')
-ax.grid()
-fig.tight_layout()
-plt.show()
+# #Visualisierung
+# fig, ax = plt.subplots(figsize=(20,10))
+# ax.set_xlabel('z/pc')
+# ax.set_ylabel('$\\nu / \\nu_0 $')
+# ax.scatter(jnp.linspace(z0, z1, n), data, marker='o')
+# ax.grid()
+# fig.tight_layout()
+# plt.show()
 
 lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
@@ -154,8 +152,6 @@ samples, state = jft.optimize_kl(
     resume=False,
 )
 
-# Now the samples-object contains all the abstract parameters that were inferred
-# Reading out the physical input parameter values goes e.g. like this:
 results = {}
 
 results["rohs1"] = tuple(roh_1(s).tolist()[0] for s in samples)
@@ -178,7 +174,7 @@ data_roh = {
 
     "Standard Deviation roh": stdr,
 
-    "Samples roh": [results[f'rohs1']],# + [results['rohsdm']],
+    "Samples roh": [results[f'rohs1']],
 
     "Abweichung roh": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
 }
@@ -190,7 +186,7 @@ data_sigma = {
 
     "Standard Deviation sigma": stds,
 
-    "Samples sigma": [results[f'sigmas1']],# + [results['sigmasdm']],
+    "Samples sigma": [results[f'sigmas1']],
 
     "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
 }
@@ -201,10 +197,14 @@ dfs = pd.DataFrame(data_sigma)
 dfs.to_csv(f'data_sigma_simp_3.csv', mode='a', header=False, index=False)
 
 
-# for i in range(10):
-#     print(i)
-#     test(i)
 
-#seed = 3; jft.random_like(key, fwd.target) -> error
-#seed = 3; jft.random_like(subkey, fwd.target) -> kein error
-#seed = 4; jft.random_like(subkey, fwd.domain) -> error
+# seed = 3; funktioniert
+# seed = 4; error
+# seed = 4 / @jit in alter Form: funktioniert
+# seed = 4 / @jit in neuer Form: error
+# mehr noise; funktioniert
+# weniger als 6 iterations; funktioniert
+# ohne den ersten Punkt funktioniert
+# mit n = 8 nicht
+
+
