@@ -31,7 +31,7 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
 
 n = 121
 i_s = int(200/1200 * (n-1))
-i_n = int(100/1200 * (n-1))
+i_n = int(200/1200 * (n-1))
 
 #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
 f = lambda rho_dm, params, z, u: jnp.array([u[1], \
@@ -188,7 +188,7 @@ for rho_dm in rhos_dm:
 
 ax[0].grid()
 ax[1].grid()
-ax[1].legend()
+ax[1].legend(prop={'size': 23})
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
 

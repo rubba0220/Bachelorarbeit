@@ -92,7 +92,8 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 # Auswertung('data_rho_eigen_uniform2.csv', 'data_sigma_eigen_uniform2.csv', name='changes', Zoom = None)
 # Auswertung('data_rho_eigen_lognormal.csv', 'data_sigma_eigen_lognormal.csv', name='changes', Zoom = None)
 # Auswertung('data_rho_eigen_lognormal2.csv', 'data_sigma_eigen_lognormal2.csv', name='changes', Zoom = None)
-Auswertung('data_rho_more.csv', 'data_sigma_more.csv', name='changes', Zoom = None)
+# Auswertung('data_rho_more.csv', 'data_sigma_more.csv', name='changes', Zoom = None)
+Auswertung('data_rho_neuenorm.csv', 'data_sigma_neuenorm.csv', name='changes', Zoom = None)
 
 
 

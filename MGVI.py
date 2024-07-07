@@ -29,7 +29,7 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
 
 n = 1201
 i_s = int(200/1200 * (n-1))
-i_n = int(100/1200 * (n-1))
+i_n = int(200/1200 * (n-1))
 
 #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
 f = lambda rho_dm, params, z, u: jnp.array([u[1], \
@@ -294,14 +294,14 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_fail.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_fail.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_rho_neuenorm.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_neuenorm.csv', mode='a', header=False, index=False)
 
 seed = 4
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (75,), 1, 1000000)
+seeds = random.randint(subkey, (10,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
@@ -315,18 +315,18 @@ def has_duplicates(arr):
 if has_duplicates(seeds):
     print("Das Array enthält doppelte Elemente.")
 
-# else:
-#     for s in seeds:
-#         t0 = time.time()
-#         test_mgvi(s)
-#         t1 = time.time()
-#         print('Time:', t1-t0, 's')
+else:
+    for s in seeds:
+        t0 = time.time()
+        test_mgvi(s)
+        t1 = time.time()
+        print('Time:', t1-t0, 's')
 
-print(seeds[59])
+# print(seeds[59])
 
-#Ausreißer bei run 60, also pos 59 --> seed 390196
+# #Ausreißer bei run 60, also pos 59 --> seed 390196
 
-test_mgvi(390196)
+# test_mgvi(390196)
 
 
 
