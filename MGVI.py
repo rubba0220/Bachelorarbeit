@@ -9,6 +9,7 @@ from scipy import constants as const
 import nifty8.re as jft
 import diffrax as dif
 import pandas as pd
+from jax.scipy.integrate import trapezoid
 
 import time
 jax.config.update("jax_enable_x64", True)
@@ -113,6 +114,25 @@ def vdfo_norm(z0, z1, i_s, i_n, uz, n):
 
     return vdfo_norm_calc, z
 
+@partial(jit, static_argnames=['n', 'i_s'])
+def binning(vdfo_norm_calc, z, n, i_s):
+    l = int((n-i_s-1)/10)
+    z_borders = z[0::l]
+
+    integral = []
+    for i in range(10):
+        integral += [trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])]
+    integral = jnp.array(integral)
+
+    # def bin(vdfo_norm_calc, i):
+    #     integral = simpson(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])
+    #     vdfo_norm_calc[i*l:(i+1)*l] = 0
+    #     return vdfo_norm_calc, integral
+    
+    # _, integral = lax.scan(bin, vdfo_norm_calc, jnp.arange(10))
+
+    return integral, z_borders
+
 ''' Test des Algorithmus zur MGVI '''
 rhos = jnp.array([  0.021, 0.016, 0.012, 
                     0.0009, 0.0006, 0.0031, 
@@ -170,7 +190,11 @@ class ForwardModel(jft.Model):
 
             vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
 
-            return vdfo_norm_calc
+            norm = trapezoid(vdfo_norm_calc, z)
+
+            integral, z_borders = binning(vdfo_norm_calc/norm, z, n, i_s)
+
+            return integral * 5000/jnp.sum(integral)
 
         return complicated_function(rs, ss, rdm)
 
@@ -180,29 +204,26 @@ def test_mgvi(s):
     seed = s
     key = random.PRNGKey(seed)
 
-    noise_cov = lambda x: 0.001 * x
-    noise_cov_inv = lambda x: 1. / 0.001 * x
-
     key, subkey = random.split(key)
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
 
-    key, subkey = random.split(key)
-    noise_truth = (
-        (noise_cov(jft.ones_like(fwd.target))) ** 0.5) * jft.random_like(subkey, fwd.target)
-    data = fwd_truth + noise_truth
+    data = jnp.round(fwd_truth,0)
+    data = data.astype(int)
 
     # #Visualisierung
     # dz = (z1-z0)/(n-1)
+    # l = int((n-i_s-1)/10)
     # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
+    # z_borders = z[0::l]
     # fig, ax = plt.subplots(figsize=(20,10))
     # ax.set_xlabel('z/pc')
     # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter(z, data, marker='o')
+    # ax.scatter(z_borders[:-1], data, marker='o')
     # ax.grid()
     # fig.tight_layout()
 
-    lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
+    lh = jft.Poissonian(data).amend(fwd)
 
 
     # Now lets run the main inference scheme:
@@ -294,8 +315,8 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_rho_neuenorm.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_neuenorm.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_rho_binning.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_binning.csv', mode='a', header=False, index=False)
 
 seed = 4
 key = random.PRNGKey(seed)
