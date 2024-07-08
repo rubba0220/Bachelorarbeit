@@ -79,7 +79,7 @@ class ForwardModel(jft.Model):
             uz, zs = eigenerSolverV2(params, z0, z1, u0, f, n)
             val = uz[:,0]
 
-            return val[1:]
+            return val
 
         return complicated_function(r1, s1)
  
