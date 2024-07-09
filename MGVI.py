@@ -1,6 +1,7 @@
 #jax bisher nur für CPU intslliert (pip install -U "jax[cpu]")
 import jax
 import jax.numpy as jnp
+import numpy as np
 import jax.lax as lax
 from jax import jit, random
 from functools import partial
@@ -28,15 +29,10 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
                             #Umrechnung, sodass z in parsec
 
-n = 1201
-i_s = int(200/1200 * (n-1))
-i_n = int(200/1200 * (n-1))
-
 #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
 f = lambda rho_dm, params, z, u: jnp.array([u[1], \
             4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + rho_dm)])
 z0 = 0.
-z1 = 1200.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
 #numerische Lösung (mittels Dopri5/rk4)
@@ -86,12 +82,11 @@ def eigenerSolverV2(rho_dm, params, z0, z1, u0, f, n):
 
 #Berechnung des tracer density drop off
 @partial(jit, static_argnames=['n', 'i_s', 'i_n'])
-def vdfo_norm(z0, z1, i_s, i_n, uz, n):
+def vdfo_norm(z0, z1, i_s, i_n, uz, n, poly):
     dz = (z1-z0)/(n-1)
 
-    #mock velocity dispersion function
     def sigma(z):
-        return 20. + 17.*z/1000. #z in pc, sigma in km/s
+        return jnp.sqrt(poly[0]*z + poly[1])
     
     z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
     sigma_sq_norm = (sigma(z)/sigma(z0+i_n*dz))**(2)
@@ -114,13 +109,13 @@ def vdfo_norm(z0, z1, i_s, i_n, uz, n):
 
     return vdfo_norm_calc, z
 
-@partial(jit, static_argnames=['n', 'i_s'])
-def binning(vdfo_norm_calc, z, n, i_s):
-    l = int((n-i_s-1)/10)
+@partial(jit, static_argnames=['n', 'i_s', 'n_bins'])
+def binning(vdfo_norm_calc, z, n, i_s, n_bins):
+    l = int((n-i_s-1)/n_bins)
     z_borders = z[0::l]
 
     integral = []
-    for i in range(10):
+    for i in range(n_bins):
         integral += [trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])]
     integral = jnp.array(integral)
 
@@ -162,69 +157,58 @@ rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
-class ForwardModel(jft.Model):
-    def __init__(self):
-        self.rho_s = rho_s
-        self.sigma_s = sigma_s
-        self.rho_dm = rho_dm
+def mgvi(am_min, am_max, s, i1, i2, z1, n):
+    z1 = z1
+    n = n
+    i_s = int((s/2000 * (n-1)))
+    i_n = int((s/2000 * (n-1)))
+    poly = np.loadtxt(f'poly_{am_min:.0f}{am_max:.0f}.txt')
+    data = np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')[i1:i2]
+    bins = np.loadtxt(f'bins_{am_min:.0f}{am_max:.0f}.txt')[i1:i2+1]
+    norm = np.sum(data)
+    n_bins = int(len(bins)-1)
 
-        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
+    class ForwardModel(jft.Model):
+        def __init__(self):
+            self.rho_s = rho_s
+            self.sigma_s = sigma_s
+            self.rho_dm = rho_dm
 
-    @jit
-    def __call__(self, x):
-        rs = self.rho_s(x)
-        ss = self.sigma_s(x)
-        rdm = self.rho_dm(x)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
 
-        def complicated_function(rho_s, sigma_s, rho_dm):
-            params = jnp.array([
-                    [rho_s[0], sigma_s[0]], [rho_s[1], sigma_s[1]], [rho_s[2], sigma_s[2]],
-                    [rho_s[3], sigma_s[3]], [rho_s[4], sigma_s[4]], [rho_s[5], sigma_s[5]],
-                    [rho_s[6], sigma_s[6]], [rho_s[7], sigma_s[7]], [rho_s[8], sigma_s[8]],
-                    [rho_s[9], sigma_s[9]], [rho_s[10], sigma_s[10]], [rho_s[11], sigma_s[11]],
-                    [rho_s[12], sigma_s[12]], [rho_s[13], sigma_s[13]], [rho_s[14], sigma_s[14]]])
-            
-            rho_dm = rho_dm[0]
+        @jit
+        def __call__(self, x):
+            rs = self.rho_s(x)
+            ss = self.sigma_s(x)
+            rdm = self.rho_dm(x)
 
-            uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
+            def complicated_function(rho_s, sigma_s, rho_dm):
+                params = jnp.array([
+                        [rho_s[0], sigma_s[0]], [rho_s[1], sigma_s[1]], [rho_s[2], sigma_s[2]],
+                        [rho_s[3], sigma_s[3]], [rho_s[4], sigma_s[4]], [rho_s[5], sigma_s[5]],
+                        [rho_s[6], sigma_s[6]], [rho_s[7], sigma_s[7]], [rho_s[8], sigma_s[8]],
+                        [rho_s[9], sigma_s[9]], [rho_s[10], sigma_s[10]], [rho_s[11], sigma_s[11]],
+                        [rho_s[12], sigma_s[12]], [rho_s[13], sigma_s[13]], [rho_s[14], sigma_s[14]]])
+                
+                rho_dm = rho_dm[0]
 
-            vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
+                uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
 
-            norm = trapezoid(vdfo_norm_calc, z)
+                vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n, poly)
 
-            integral, z_borders = binning(vdfo_norm_calc/norm, z, n, i_s)
 
-            return integral * 5000/jnp.sum(integral)
+                integral, z_borders = binning(vdfo_norm_calc, z, n, i_s, n_bins)
 
-        return complicated_function(rs, ss, rdm)
+                return integral * norm/jnp.sum(integral)
 
-# This initialises your forward-model which computes something data-like
-fwd = ForwardModel()
-def test_mgvi(s):
-    seed = s
+            return complicated_function(rs, ss, rdm)
+
+    # This initialises your forward-model which computes something data-like
+    fwd = ForwardModel()
+
+    seed = 42
     key = random.PRNGKey(seed)
-
-    key, subkey = random.split(key)
-    pos_truth = jft.random_like(subkey, fwd.domain)
-    fwd_truth = fwd(pos_truth)
-
-    data = jnp.round(fwd_truth,0)
-    data = data.astype(int)
-
-    # #Visualisierung
-    # dz = (z1-z0)/(n-1)
-    # l = int((n-i_s-1)/10)
-    # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    # z_borders = z[0::l]
-    # fig, ax = plt.subplots(figsize=(20,10))
-    # ax.set_xlabel('z/pc')
-    # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter(z_borders[:-1], data, marker='o')
-    # ax.grid()
-    # fig.tight_layout()
-
     lh = jft.Poissonian(data).amend(fwd)
-
 
     # Now lets run the main inference scheme:
     n_vi_iterations = 6
@@ -279,76 +263,46 @@ def test_mgvi(s):
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
     results["rhodm"] = jft.mean_and_std(results["rhosdm"])
 
-    truthr = [*rho_s(pos_truth), rho_dm(pos_truth)[0]]
     meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
     stdr = [results[f'rho{k+1}'][1] for k in range(15)] + [results['rhodm'][1]]
 
 
     data_rho = {
-        "True Value rho": truthr,
-
         "Inferred Value rho": meanr,
 
         "Standard Deviation rho": stdr,
 
-        "Samples rho": [results[f'rhos{k+1}'] for k in range(15)] + [results['rhosdm']],
-
-        "Abweichung rho": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
+        "Samples rho": [results[f'rhos{k+1}'] for k in range(15)] + [results['rhosdm']]
     }
 
-    truths = [*sigma_s(pos_truth)]
     means = [results[f'sigma{k+1}'][0] for k in range(15)]
     stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
 
     data_sigma = {
-        "True Value sigma": truths,
-
         "Inferred Value sigma": means,
 
         "Standard Deviation sigma": stds,
 
-        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
-
-        "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
+        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
     }
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    # dfr.to_csv(f'data_rho_binning_more2.csv', mode='a', header=False, index=False)
-    # dfs.to_csv(f'data_sigma_binning_more2.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
-seed = 4
-key = random.PRNGKey(seed)
+t0 = time.time()
+mgvi(5, 6, 500, 25, 30, 1000., 1001)
+t1 = time.time()
+print('Elapsed time: ', t1-t0)
 
-key, subkey = random.split(key)
-seeds = random.randint(subkey, (75,), 1, 1000000)
+t2 = time.time()
+mgvi(6, 7, 500, 50, 60, 1000., 1001)
+t3 = time.time()
+print('Elapsed time: ', t3-t2)
 
-def has_duplicates(arr):
-    seen = set()
-    for element in arr:
-        element = int(element)
-        if element in seen:
-            return True
-        seen.add(element)
-    return False
-
-if has_duplicates(seeds):
-    print("Das Array enthält doppelte Elemente.")
-
-# else:
-#     for s in seeds:
-#         t0 = time.time()
-#         test_mgvi(s)
-#         t1 = time.time()
-#         print('Time:', t1-t0, 's')
-
-# print(seeds[59])
-
-# #Ausreißer bei run 60, also pos 59 --> seed 390196
-
-# test_mgvi(390196)
-
-
-
-
+t4 = time.time()
+mgvi(7,8, 500, 50, 60, 1000., 1001)
+t5 = time.time()
+print('Elapsed time: ', t5-t4)
