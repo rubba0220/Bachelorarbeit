@@ -85,6 +85,7 @@ def eigenerSolverV2(rho_dm, params, z0, z1, u0, f, n):
 def vdfo_norm(z0, z1, i_s, i_n, uz, n, poly):
     dz = (z1-z0)/(n-1)
 
+    #still mock velocity dispersion
     def sigma(z):
         return jnp.sqrt(poly[0]*z + poly[1])
     
@@ -162,7 +163,7 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
     n = n
     i_s = int((s/2000 * (n-1)))
     i_n = int((s/2000 * (n-1)))
-    poly = np.loadtxt(f'poly_{am_min:.0f}{am_max:.0f}.txt')
+    poly = np.loadtxt(f'poly_58.txt')
     data = np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')[i1:i2]
     bins = np.loadtxt(f'bins_{am_min:.0f}{am_max:.0f}.txt')[i1:i2+1]
     norm = np.sum(data)
@@ -289,20 +290,12 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
+    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
 
-t0 = time.time()
-mgvi(5, 6, 500, 25, 30, 1000., 1001)
-t1 = time.time()
-print('Elapsed time: ', t1-t0)
+mgvi(5, 6, 200, 22, 44, 1200., 1201)
+mgvi(6, 7, 200, 50, 64, 1200., 1201)
+mgvi(7,8, 200, 50, 64, 1200., 1201)
 
-t2 = time.time()
-mgvi(6, 7, 500, 50, 60, 1000., 1001)
-t3 = time.time()
-print('Elapsed time: ', t3-t2)
+# mgvi(5,8, 100, 55, 80, 1400., 1201)
 
-t4 = time.time()
-mgvi(7,8, 500, 50, 60, 1000., 1001)
-t5 = time.time()
-print('Elapsed time: ', t5-t4)
