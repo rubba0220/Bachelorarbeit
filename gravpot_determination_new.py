@@ -252,6 +252,26 @@ ax[1].legend(prop={'size': 23})
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
 
+''' Visualisierung rho_dm'''
+fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+plt.title('Influence of $\\rho_{dm}$')
+ax[0].set_xlabel('z/pc')
+ax[0].set_ylabel('$\Phi / (km/s)^2$')
+ax[1].set_xlabel('z/pc')
+ax[1].set_ylabel('$\\nu / \\nu_0 $')
+
+for rho_dm in rhos_dm:
+    uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
+    vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
+    ax[0].scatter(zs, [u[0] for u in uz], label=f'$\\rho_dm = {rho_dm:.3f}$')
+    ax[1].scatter(z, vdfo_norm_calc/jnp.sum(vdfo_norm_calc), label=f'$\\rho_dm = {rho_dm:.3f}$')
+
+ax[0].grid()
+ax[1].grid()
+ax[1].legend(prop={'size': 23})
+fig.tight_layout()
+fig.subplots_adjust(hspace=0.0)
+
 
 
 ''' Visualisierung other params'''
