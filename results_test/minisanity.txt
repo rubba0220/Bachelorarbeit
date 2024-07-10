@@ -27942,3 +27942,267 @@ rho_dm                :: reduced χ²: 1.1e+01±     8.0, avg:     -3.2±     1.
 rho_s                 :: reduced χ²:     1.8±    0.37, avg:     -0.7±    0.16, #dof:     15
 sigma_s               :: reduced χ²:     1.1±    0.29, avg:    -0.17±    0.26, #dof:     15
 
+
+Post OptimizeVI: Iteration -001 ⛰:-6.3751e+04
+#(Nonlinear Sampling Steps) (3, 2, 2, 2, 2, 2, 2, 2, 2, 2)
+#(KL minimization steps) 23
+Likelihood residual(s):
+reduced χ²:     7.2±     0.9, avg:  +0.0011±    0.23, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.5±    0.15, avg:     -1.9±    0.04, #dof:      1
+rho_s                 :: reduced χ²:     2.2±    0.75, avg:    -0.93±    0.27, #dof:     15
+sigma_s               :: reduced χ²:     1.5±    0.56, avg:    -0.15±    0.26, #dof:     15
+
+
+Post OptimizeVI: Iteration 0000 ⛰:-6.3751e+04
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 5)
+#(KL minimization steps) 23
+Likelihood residual(s):
+reduced χ²:     7.1±    0.58, avg:   -0.025±   0.086, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     4.4±     1.3, avg:     -2.1±    0.27, #dof:      1
+rho_s                 :: reduced χ²:     2.2±    0.45, avg:    -0.83±    0.25, #dof:     15
+sigma_s               :: reduced χ²:     1.5±     0.5, avg:   -0.071±    0.43, #dof:     15
+
+
+Post OptimizeVI: Iteration 0001 ⛰:-6.3751e+04
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 5, 3, 3, 4, 3, 3, 4, 3, 3, 3, 3, 4, 3, 3, 4)
+#(KL minimization steps) 25
+Likelihood residual(s):
+reduced χ²:     7.2±    0.88, avg:   -0.034±   0.087, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     4.6±     1.5, avg:     -2.1±    0.32, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.71, avg:    -0.78±    0.29, #dof:     15
+sigma_s               :: reduced χ²:     1.5±    0.41, avg:   -0.055±     0.4, #dof:     15
+
+
+Post OptimizeVI: Iteration 0002 ⛰:-6.3753e+04
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 3, 3, 3, 4, 3, 3, 3, 3, 4, 5)
+#(KL minimization steps) 14
+Likelihood residual(s):
+reduced χ²:     7.2±    0.64, avg:   -0.037±   0.081, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     6.9±     9.6, avg:     -2.4±     1.1, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.66, avg:    -0.78±    0.25, #dof:     15
+sigma_s               :: reduced χ²:     1.1±    0.46, avg:   -0.034±    0.33, #dof:     15
+
+
+Post OptimizeVI: Iteration 0003 ⛰:-6.3752e+04
+#(Nonlinear Sampling Steps) (3, 4, 3, 3, 3, 3, 3, 4, 3, 5, 2, 2, 4, 3, 3, 4, 3, 3, 4, 3)
+#(KL minimization steps) 15
+Likelihood residual(s):
+reduced χ²:     7.1±     0.7, avg:   -0.028±   0.069, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     4.4±     1.1, avg:     -2.1±    0.25, #dof:      1
+rho_s                 :: reduced χ²:     2.2±    0.73, avg:    -0.81±    0.28, #dof:     15
+sigma_s               :: reduced χ²:     1.4±    0.42, avg:   -0.059±     0.2, #dof:     15
+
+
+Post OptimizeVI: Iteration 0004 ⛰:-6.3752e+04
+#(Nonlinear Sampling Steps) (3, 4, 3, 4, 3, 3, 3, 3, 3, 4, 4, 3, 3, 5, 4, 3, 3, 4, 3, 3)
+#(KL minimization steps) 10
+Likelihood residual(s):
+reduced χ²:     7.1±    0.46, avg:   -0.029±     0.1, #dof:     13
+Prior residual(s):
+rho_dm                :: reduced χ²:     4.5±     1.3, avg:     -2.1±    0.28, #dof:      1
+rho_s                 :: reduced χ²:     2.2±    0.58, avg:    -0.83±    0.18, #dof:     15
+sigma_s               :: reduced χ²:     1.3±    0.31, avg:   -0.052±    0.27, #dof:     15
+
+
+Post OptimizeVI: Iteration -001 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 2, 2, 3, 3, 2, 2, 3, 3)
+#(KL minimization steps) 17
+Likelihood residual(s):
+reduced χ²:     5.2±    0.38, avg:    -0.03±     0.2, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.4±   0.085, avg:     -1.6±   0.027, #dof:      1
+rho_s                 :: reduced χ²:     3.6±    0.85, avg:     -1.4±    0.23, #dof:     15
+sigma_s               :: reduced χ²:     1.7±     0.6, avg:   -0.066±    0.26, #dof:     15
+
+
+Post OptimizeVI: Iteration 0000 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 9
+Likelihood residual(s):
+reduced χ²:     5.1±     0.4, avg:   -0.042±   0.063, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.7±   0.088, avg:     -1.6±   0.027, #dof:      1
+rho_s                 :: reduced χ²:     3.5±    0.57, avg:     -1.2±    0.29, #dof:     15
+sigma_s               :: reduced χ²:     1.9±     0.5, avg:  -0.0014±    0.42, #dof:     15
+
+
+Post OptimizeVI: Iteration 0001 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 8
+Likelihood residual(s):
+reduced χ²:     5.0±    0.43, avg:   -0.041±   0.075, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.7±    0.28, avg:     -1.6±   0.084, #dof:      1
+rho_s                 :: reduced χ²:     3.5±    0.85, avg:     -1.3±    0.22, #dof:     15
+sigma_s               :: reduced χ²:     1.9±    0.52, avg: +0.00055±     0.4, #dof:     15
+
+
+Post OptimizeVI: Iteration 0002 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 30
+Likelihood residual(s):
+reduced χ²:     5.1±    0.39, avg:   -0.041±   0.074, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.7±    0.18, avg:     -1.6±   0.054, #dof:      1
+rho_s                 :: reduced χ²:     3.5±    0.82, avg:     -1.3±    0.22, #dof:     15
+sigma_s               :: reduced χ²:     1.5±    0.55, avg:  -0.0055±    0.33, #dof:     15
+
+
+Post OptimizeVI: Iteration 0003 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 8
+Likelihood residual(s):
+reduced χ²:     5.1±    0.48, avg:   -0.041±   0.048, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.6±     0.2, avg:     -1.6±   0.061, #dof:      1
+rho_s                 :: reduced χ²:     3.5±    0.86, avg:     -1.3±    0.23, #dof:     15
+sigma_s               :: reduced χ²:     1.7±     0.5, avg:   -0.012±     0.2, #dof:     15
+
+
+Post OptimizeVI: Iteration 0004 ⛰:-3.5010e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 11
+Likelihood residual(s):
+reduced χ²:     5.1±    0.32, avg:   -0.043±   0.068, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     2.7±    0.32, avg:     -1.6±   0.096, #dof:      1
+rho_s                 :: reduced χ²:     3.5±    0.77, avg:     -1.2±    0.22, #dof:     15
+sigma_s               :: reduced χ²:     1.6±    0.43, avg:   +0.016±    0.28, #dof:     15
+
+
+Post OptimizeVI: Iteration -001 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (3, 3, 2, 2, 3, 3, 2, 2, 3, 3)
+#(KL minimization steps) 17
+Likelihood residual(s):
+reduced χ²:   3e+01±    0.68, avg:    -0.43±    0.17, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     0.9±   0.052, avg:    -0.95±   0.027, #dof:      1
+rho_s                 :: reduced χ²:     7.0±     1.2, avg:     -2.1±    0.23, #dof:     15
+sigma_s               :: reduced χ²:     2.7±     1.1, avg:    -0.49±    0.26, #dof:     15
+
+
+Post OptimizeVI: Iteration 0000 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (2, 2, 2, 2, 3, 2, 2, 2, 2, 3)
+#(KL minimization steps) 14
+Likelihood residual(s):
+reduced χ²:   3e+01±    0.38, avg:    -0.43±   0.096, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:    0.91±   0.028, avg:    -0.95±   0.015, #dof:      1
+rho_s                 :: reduced χ²:     7.5±    0.87, avg:     -2.1±    0.28, #dof:     15
+sigma_s               :: reduced χ²:     2.7±    0.56, avg:    -0.47±    0.41, #dof:     15
+
+
+Post OptimizeVI: Iteration 0001 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2)
+#(KL minimization steps) 17
+Likelihood residual(s):
+reduced χ²:   3e+01±    0.81, avg:    -0.43±   0.098, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:    0.91±   0.039, avg:    -0.95±   0.021, #dof:      1
+rho_s                 :: reduced χ²:     7.7±     1.7, avg:     -2.1±    0.27, #dof:     15
+sigma_s               :: reduced χ²:     2.4±    0.65, avg:    -0.45±    0.41, #dof:     15
+
+
+Post OptimizeVI: Iteration 0002 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 3, 3)
+#(KL minimization steps) 17
+Likelihood residual(s):
+reduced χ²:   3e+01±     0.6, avg:    -0.43±   0.085, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:    0.91±   0.033, avg:    -0.95±   0.017, #dof:      1
+rho_s                 :: reduced χ²:     7.6±     1.4, avg:     -2.1±    0.26, #dof:     15
+sigma_s               :: reduced χ²:     2.1±    0.74, avg:    -0.47±    0.34, #dof:     15
+
+
+Post OptimizeVI: Iteration 0003 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 3, 2, 2)
+#(KL minimization steps) 16
+Likelihood residual(s):
+reduced χ²:   3e+01±    0.71, avg:    -0.43±   0.058, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:     0.9±    0.03, avg:    -0.95±   0.016, #dof:      1
+rho_s                 :: reduced χ²:     7.6±     1.5, avg:     -2.1±    0.27, #dof:     15
+sigma_s               :: reduced χ²:     2.5±    0.64, avg:     -0.5±     0.2, #dof:     15
+
+
+Post OptimizeVI: Iteration 0004 ⛰:-3.4639e+05
+#(Nonlinear Sampling Steps) (2, 2, 2, 3, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2)
+#(KL minimization steps) 15
+Likelihood residual(s):
+reduced χ²:   3e+01±    0.59, avg:    -0.43±   0.086, #dof:     26
+Prior residual(s):
+rho_dm                :: reduced χ²:    0.91±   0.047, avg:    -0.95±   0.025, #dof:      1
+rho_s                 :: reduced χ²:     7.6±     1.3, avg:     -2.1±    0.22, #dof:     15
+sigma_s               :: reduced χ²:     2.4±    0.61, avg:    -0.46±    0.28, #dof:     15
+
+
+Post OptimizeVI: Iteration -001 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (3, 3, 2, 2, 3, 3, 2, 2, 3, 3)
+#(KL minimization steps) 25
+Likelihood residual(s):
+reduced χ²: 1.4e+01±     0.6, avg:    -0.16±    0.13, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.4±   0.057, avg:     -1.2±   0.024, #dof:      1
+rho_s                 :: reduced χ²:     8.4±     1.3, avg:     -2.3±    0.22, #dof:     15
+sigma_s               :: reduced χ²:     3.4±     1.4, avg:    -0.34±    0.26, #dof:     15
+
+
+Post OptimizeVI: Iteration 0000 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (2, 2, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 11
+Likelihood residual(s):
+reduced χ²: 1.4e+01±    0.37, avg:    -0.16±   0.064, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.4±   0.048, avg:     -1.2±    0.02, #dof:      1
+rho_s                 :: reduced χ²:     8.8±     1.1, avg:     -2.3±    0.34, #dof:     15
+sigma_s               :: reduced χ²:     3.3±    0.69, avg:    -0.35±    0.41, #dof:     15
+
+
+Post OptimizeVI: Iteration 0001 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 27
+Likelihood residual(s):
+reduced χ²: 1.4e+01±    0.66, avg:    -0.16±    0.05, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.4±   0.071, avg:     -1.2±    0.03, #dof:      1
+rho_s                 :: reduced χ²:     8.9±     1.6, avg:     -2.3±    0.25, #dof:     15
+sigma_s               :: reduced χ²:     3.0±    0.67, avg:    -0.25±    0.41, #dof:     15
+
+
+Post OptimizeVI: Iteration 0002 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 2, 3, 3, 3, 3, 3, 2, 2, 3, 3)
+#(KL minimization steps) 35
+Likelihood residual(s):
+reduced χ²: 1.3e+01±    0.55, avg:    -0.13±    0.13, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.5±   0.062, avg:     -1.2±   0.025, #dof:      1
+rho_s                 :: reduced χ²:     8.8±     1.0, avg:     -2.3±    0.17, #dof:     15
+sigma_s               :: reduced χ²:     2.9±    0.92, avg:    +0.15±    0.34, #dof:     15
+
+
+Post OptimizeVI: Iteration 0003 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 2, 2, 3, 3, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 10
+Likelihood residual(s):
+reduced χ²: 1.3e+01±    0.54, avg:    -0.16±   0.051, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.6±   0.068, avg:     -1.2±   0.027, #dof:      1
+rho_s                 :: reduced χ²:     8.4±     1.3, avg:     -2.3±    0.21, #dof:     15
+sigma_s               :: reduced χ²:     3.4±    0.72, avg:    +0.18±    0.19, #dof:     15
+
+
+Post OptimizeVI: Iteration 0004 ⛰:-8.8398e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2)
+#(KL minimization steps) 10
+Likelihood residual(s):
+reduced χ²: 1.3e+01±    0.46, avg:    -0.16±   0.038, #dof:     33
+Prior residual(s):
+rho_dm                :: reduced χ²:     1.6±    0.09, avg:     -1.2±   0.036, #dof:      1
+rho_s                 :: reduced χ²:     8.6±     1.3, avg:     -2.3±     0.2, #dof:     15
+sigma_s               :: reduced χ²:     3.2±    0.81, avg:    +0.18±    0.28, #dof:     15
+

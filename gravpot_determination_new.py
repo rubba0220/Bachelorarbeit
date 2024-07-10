@@ -151,7 +151,7 @@ integral, z_borders = binning(vdfo_norm_calc, z, n, i_s)
 
 
 
-data = pd.read_csv('data_fail.csv', header=None)
+data = pd.read_csv('data new new/data_fail.csv', header=None)
 
 rho_dm_truth = data.iloc[15,0]
 rho_dm_inferred = data.iloc[15,1]

@@ -293,9 +293,8 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
     dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
     dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
 
-mgvi(5, 6, 200, 22, 44, 1200., 1201)
-mgvi(6, 7, 200, 50, 64, 1200., 1201)
-mgvi(7,8, 200, 50, 64, 1200., 1201)
-
-# mgvi(5,8, 100, 55, 80, 1400., 1201)
+# mgvi(5, 6, 300, 23, 36, 1600., 1301)
+# mgvi(6, 7, 300, 46, 72, 1600., 1301)
+# mgvi(7,8, 300, 46, 72, 1600., 1301)
+mgvi(5,8, 280, 57, 90, 1600., 1321)
 
