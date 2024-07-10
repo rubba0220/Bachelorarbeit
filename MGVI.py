@@ -166,7 +166,7 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
     poly = np.loadtxt(f'poly_58.txt')
     data = np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')[i1:i2]
     bins = np.loadtxt(f'bins_{am_min:.0f}{am_max:.0f}.txt')[i1:i2+1]
-    norm = np.sum(data)
+    norm = data[0]
     n_bins = int(len(bins)-1)
 
     class ForwardModel(jft.Model):
@@ -200,7 +200,7 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
 
                 integral, z_borders = binning(vdfo_norm_calc, z, n, i_s, n_bins)
 
-                return integral * norm/jnp.sum(integral)
+                return integral * norm/integral[0]
 
             return complicated_function(rs, ss, rdm)
 
@@ -290,11 +290,11 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
-    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', header=False, index=False)
+    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
-# mgvi(5, 6, 300, 23, 36, 1600., 1301)
-# mgvi(6, 7, 300, 46, 72, 1600., 1301)
-# mgvi(7,8, 300, 46, 72, 1600., 1301)
+mgvi(5, 6, 300, 23, 36, 1600., 1301)
+mgvi(6, 7, 300, 46, 72, 1600., 1301)
+mgvi(7,8, 300, 46, 72, 1600., 1301)
 mgvi(5,8, 280, 57, 90, 1600., 1321)
 
