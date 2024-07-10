@@ -164,7 +164,7 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
     i_s = int((s/2000 * (n-1)))
     i_n = int((s/2000 * (n-1)))
     poly = np.loadtxt(f'poly_58.txt')
-    data = np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')[i1:i2]
+    data = np.flip(np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int'))[i1:i2]
     bins = np.loadtxt(f'bins_{am_min:.0f}{am_max:.0f}.txt')[i1:i2+1]
     norm = np.sum(data)
     n_bins = int(len(bins)-1)
