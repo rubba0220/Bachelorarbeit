@@ -69,37 +69,39 @@ def eigenerSolverV2(rho_dm, params, z1, n):
     return uz, zs
 
 #Berechnung des tracer density drop off
-@partial(jit, static_argnames=['n', 'i_s', 'i_n'])
-def vdfo_norm(z1, i_s, i_n, uz, n, poly):
+@partial(jit, static_argnames=['n', 'z1', 'z2'])
+def vdfo_norm(z2, z1, zs, uz, n, poly):
     dz = (z1-z0)/(n-1)
 
-    #still mock velocity dispersion
-    def sigma(z):
-        return jnp.sqrt(poly[0]*z + poly[1])
-    
-    z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    sigma_sq_norm = (sigma(z)/sigma(z0+i_n*dz))**(2)
-    z_ns = jnp.linspace(z0+i_n*dz, z0+(i_s-1)*dz, i_s-i_n)
-    sigmass = sigma(z_ns)
+    # #still mock velocity dispersion
+    # def sigma(z):
+    #     return jnp.sqrt(poly[0]*z + poly[1])
 
-    exp_int = jnp.exp(-jnp.sum(\
-                sigmass**(-2) \
-                * jnp.array(uz)[i_n:i_s,1] * dz))
+    #mock velocity dispersion function
+    def sigma(z):
+        return 20. + 17.*z/1000. #z in pc, sigma in km/s
+
+    i_s = int((z2-z0)/(z1-z0) * (n-1))
+    
+    z = zs[i_s:]
+    sigma_sq_norm = (sigma(z)/sigma(z0+i_s*dz))**(2)
+
+    exp_int = 1.
 
     def exp_int_step(exp_int, i):
-        return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
-                exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
+        carry = exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * (jnp.array(uz)[i,1]+jnp.array(uz)[i+1,1])/2 * dz)
+        return carry, carry
 
     _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i_s, n-1, 1)) #letzter Punkt wird nicht genutzt (Riemannsumme links)
 
     exp_int_list = jnp.concatenate([jnp.array([exp_int]), exp_int_list], axis=0)
-
     vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
 
     return vdfo_norm_calc, z
 
-@partial(jit, static_argnames=['n', 'i_s', 'n_bins'])
-def binning(vdfo_norm_calc, z, n, i_s, n_bins):
+@partial(jit, static_argnames=['n', 'n_bins', 'z1', 'z2'])
+def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
+    i_s = int((z2-z0)/(z1-z0) * (n-1))
     l = int((n-i_s-1)/n_bins)
     z_borders = z[0::l]
 
@@ -108,11 +110,23 @@ def binning(vdfo_norm_calc, z, n, i_s, n_bins):
         integral += [trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])]
     integral = jnp.array(integral)
 
-    # def bin(vdfo_norm_calc, i):
-    #     integral = simpson(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])
-    #     vdfo_norm_calc[i*l:(i+1)*l] = 0
-    #     return vdfo_norm_calc, integral
-    
-    # _, integral = lax.scan(bin, vdfo_norm_calc, jnp.arange(10))
-
     return integral, z_borders
+
+# @partial(jit, static_argnames=['n', 'n_bins', 'z1', 'z2', 'vdfo_norm_calc'])
+# def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
+#     i_s = int((z2-z0)/(z1-z0) * (n-1))
+#     l = int((n-i_s-1)/n_bins)
+#     z_borders = z[0::l]
+
+#     def calculate_trapezoid_integral(i, carry):
+#         start_idx = i * l
+#         end_idx = (i + 1) * l
+#         y_slice = lax.dynamic_slice(vdfo_norm_calc, [start_idx], [l])
+#         x_slice = lax.dynamic_slice(z, [start_idx], [l])
+#         # integral_value = trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])
+#         integral_value = trapezoid(y_slice, x_slice)
+#         return carry, integral_value
+
+#     _, integral = lax.scan(calculate_trapezoid_integral, 1, jnp.arange(n_bins))
+
+#     return jnp.array(integral), z_borders

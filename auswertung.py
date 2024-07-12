@@ -2,8 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from jax import numpy as jnp
 from scipy.optimize import curve_fit
-from scipy.integrate import quad
-from scipy.special import gamma
 
 # Plot-Formatierung
 plt.rcParams['font.size'] = 24.0
