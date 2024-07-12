@@ -28,15 +28,15 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
                             #Umrechnung, sodass z in parsec
 
-n = 1201
-i_s = int(200/1200 * (n-1))
-i_n = int(200/1200 * (n-1))
+n = 3001
+i_s = int(200/3000 * (n-1))
+i_n = int(200/3000 * (n-1))
 
 #Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
 f = lambda rho_dm, params, z, u: jnp.array([u[1], \
             4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + rho_dm)])
 z0 = 0.
-z1 = 1200.
+z1 = 3000.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
 #numerische Lösung (mittels Dopri5/rk4)
@@ -116,11 +116,11 @@ def vdfo_norm(z0, z1, i_s, i_n, uz, n):
 
 @partial(jit, static_argnames=['n', 'i_s'])
 def binning(vdfo_norm_calc, z, n, i_s):
-    l = int((n-i_s-1)/10)
+    l = int((n-i_s-1)/20)
     z_borders = z[0::l]
 
     integral = []
-    for i in range(10):
+    for i in range(20):
         integral += [trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])]
     integral = jnp.array(integral)
 
@@ -132,6 +132,28 @@ def binning(vdfo_norm_calc, z, n, i_s):
     # _, integral = lax.scan(bin, vdfo_norm_calc, jnp.arange(10))
 
     return integral, z_borders
+
+# @jit
+# def surface_density(params, uz)
+#     def test(params, u):
+#         return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
+
+#     sd = jnp.array([test(params, u) for u in uz])
+#     return sd
+
+@jit
+def surface_density(params, uz):
+
+    def term(params, u):
+        return jnp.sum(params[:, 0] * jnp.exp(-u[0] / params[:, 1]**2))
+
+    def scan_fn(carry, u):
+        result = term(params, u)
+        return carry, result
+
+    _, sd = lax.scan(scan_fn, None, uz)
+    return 2*jnp.sum(sd*(z1-z0)/(n-1))
+
 
 ''' Test des Algorithmus zur MGVI '''
 rhos = jnp.array([  0.021, 0.016, 0.012, 
@@ -194,9 +216,13 @@ class ForwardModel(jft.Model):
 
             integral, z_borders = binning(vdfo_norm_calc/norm, z, n, i_s)
 
-            return integral * 5000/jnp.sum(integral)
+            surface_density_calc = surface_density(params, uz)
 
-        return complicated_function(rs, ss, rdm)
+            return integral * 5000/jnp.sum(integral), surface_density_calc
+
+        return1, return2 = complicated_function(rs, ss, rdm)
+
+        return return1, return2
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
@@ -208,22 +234,35 @@ def test_mgvi(s):
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
 
-    data = jnp.round(fwd_truth,0)
+    data = jnp.round(fwd_truth[0],0)
     data = data.astype(int)
+    surface_density_truth = fwd_truth[1]
+    print(surface_density_truth)
 
-    # #Visualisierung
-    # dz = (z1-z0)/(n-1)
-    # l = int((n-i_s-1)/10)
-    # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    # z_borders = z[0::l]
-    # fig, ax = plt.subplots(figsize=(20,10))
-    # ax.set_xlabel('z/pc')
-    # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter(z_borders[:-1], data, marker='o')
-    # ax.grid()
-    # fig.tight_layout()
+    noise_cov = lambda x: 0.1 * x
+    noise_cov_inv = lambda x: 1. / 0.1 * x
 
-    lh = jft.Poissonian(data).amend(fwd)
+    # And this adds some random noise
+    key, subkey = random.split(key)
+    noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
+    ) * jft.random_like(key, fwd.target[1])
+    surface_density_truth = surface_density_truth + noise_truth
+    print(surface_density_truth, noise_truth)
+
+    #Visualisierung
+    dz = (z1-z0)/(n-1)
+    l = int((n-i_s-1)/20)
+    z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
+    z_borders = z[0::l]
+    fig, ax = plt.subplots(figsize=(20,10))
+    ax.set_xlabel('z/pc')
+    ax.set_ylabel('$\\nu / \\nu_0 $')
+    ax.scatter(z_borders[:-1], data, marker='o')
+    ax.grid()
+    fig.tight_layout()
+
+    lh = (jft.Poissonian(data)*jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
+    # lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
 
     # Now lets run the main inference scheme:
@@ -315,14 +354,14 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    # dfr.to_csv(f'data_rho_binning_more2.csv', mode='a', header=False, index=False)
-    # dfs.to_csv(f'data_sigma_binning_more2.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_rho_test.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_test.csv', mode='a', header=False, index=False)
 
 seed = 4
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (75,), 1, 1000000)
+seeds = random.randint(subkey, (1,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
@@ -336,18 +375,12 @@ def has_duplicates(arr):
 if has_duplicates(seeds):
     print("Das Array enthält doppelte Elemente.")
 
-# else:
-#     for s in seeds:
-#         t0 = time.time()
-#         test_mgvi(s)
-#         t1 = time.time()
-#         print('Time:', t1-t0, 's')
-
-# print(seeds[59])
-
-# #Ausreißer bei run 60, also pos 59 --> seed 390196
-
-# test_mgvi(390196)
+else:
+    for s in seeds:
+        t0 = time.time()
+        test_mgvi(s)
+        t1 = time.time()
+        print('Time:', t1-t0, 's')
 
 
 

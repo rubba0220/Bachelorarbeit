@@ -30,7 +30,7 @@ G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
                             #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
                             #Umrechnung, sodass z in parsec
 
-n = 121
+n = 2001
 i_s = int(200/1200 * (n-1))
 i_n = int(200/1200 * (n-1))
 
@@ -38,7 +38,7 @@ i_n = int(200/1200 * (n-1))
 f = lambda rho_dm, params, z, u: jnp.array([u[1], \
             4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + rho_dm)])
 z0 = 0.
-z1 = 1200.
+z1 = 2000.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
 #numerische Lösung (mittels Dopri5/rk4)
@@ -209,102 +209,127 @@ params_mm = params + jnp.transpose(jnp.vstack((-erhos, -esigmas)))
 
 
 
-''' Visualisierung fail'''
-fig, ax = plt.subplots(2, 1, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
-plt.title('Run with failed reconstruction of $\\rho_{dm}$')
-ax[0].set_xlabel('z/pc')
-ax[0].set_ylabel('$\Phi / (km/s)^2$')
-ax[0].scatter(zs_truth, [u[0] for u in uz_truth], marker='o', color='red', label='Truth')
-ax[0].scatter(zs_inferred, [u[0] for u in uz_inferred], marker='x', color='black', label='Inferred')
-ax[0].scatter(zs_partial_truth, [u[0] for u in uz_partial_truth], marker='o', color='blue', label='Partially Truth')
-ax[0].scatter(zs_partial_inferred, [u[0] for u in uz_partial_inferred], marker='x', color='green', label='Partially Inferred')
-ax[0].grid()
-ax[1].set_xlabel('z/pc')
-ax[1].set_ylabel('$\\nu / \\nu_0 $')
-ax[1].scatter(z_truth, vdfo_norm_calc_truth, marker='o', color='red', label='Truth')
-ax[1].scatter(z_inferred, vdfo_norm_calc_inferred, marker='x', color='black', label='Inferred')
-ax[1].scatter(z_partial_truth, vdfo_norm_calc_partial_truth, marker='o', color='blue', label='Partially Truth')
-ax[1].scatter(z_partial_inferred, vdfo_norm_calc_partial_inferred, marker='x', color='green', label='Partially Inferred')
-ax[1].grid()
-ax[1].legend()
-fig.tight_layout()
-fig.subplots_adjust(hspace=0.0)
+# ''' Visualisierung fail'''
+# fig, ax = plt.subplots(2, 1, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+# plt.title('Run with failed reconstruction of $\\rho_{dm}$')
+# ax[0].set_xlabel('z/pc')
+# ax[0].set_ylabel('$\Phi / (km/s)^2$')
+# ax[0].scatter(zs_truth, [u[0] for u in uz_truth], marker='o', color='red', label='Truth')
+# ax[0].scatter(zs_inferred, [u[0] for u in uz_inferred], marker='x', color='black', label='Inferred')
+# ax[0].scatter(zs_partial_truth, [u[0] for u in uz_partial_truth], marker='o', color='blue', label='Partially Truth')
+# ax[0].scatter(zs_partial_inferred, [u[0] for u in uz_partial_inferred], marker='x', color='green', label='Partially Inferred')
+# ax[0].grid()
+# ax[1].set_xlabel('z/pc')
+# ax[1].set_ylabel('$\\nu / \\nu_0 $')
+# ax[1].scatter(z_truth, vdfo_norm_calc_truth, marker='o', color='red', label='Truth')
+# ax[1].scatter(z_inferred, vdfo_norm_calc_inferred, marker='x', color='black', label='Inferred')
+# ax[1].scatter(z_partial_truth, vdfo_norm_calc_partial_truth, marker='o', color='blue', label='Partially Truth')
+# ax[1].scatter(z_partial_inferred, vdfo_norm_calc_partial_inferred, marker='x', color='green', label='Partially Inferred')
+# ax[1].grid()
+# ax[1].legend()
+# fig.tight_layout()
+# fig.subplots_adjust(hspace=0.0)
 
 
 
-''' Visualisierung rho_dm'''
-fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
-plt.title('Influence of $\\rho_{dm}$')
-ax[0].set_xlabel('z/pc')
-ax[0].set_ylabel('$\Phi / (km/s)^2$')
-ax[1].set_xlabel('z/pc')
-ax[1].set_ylabel('$\\nu / \\nu_0 $')
+# ''' Visualisierung rho_dm'''
+# fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+# plt.title('Influence of $\\rho_{dm}$')
+# ax[0].set_xlabel('z/pc')
+# ax[0].set_ylabel('$\Phi / (km/s)^2$')
+# ax[1].set_xlabel('z/pc')
+# ax[1].set_ylabel('$\\nu / \\nu_0 $')
 
-for rho_dm in rhos_dm:
-    uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
-    vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
-    ax[0].scatter(zs, [u[0] for u in uz], label=f'$\\rho_dm = {rho_dm:.3f}$')
-    ax[1].scatter(z, vdfo_norm_calc, label=f'$\\rho_dm = {rho_dm:.3f}$')
+# for rho_dm in rhos_dm:
+#     uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
+#     vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
+#     ax[0].scatter(zs, [u[0] for u in uz], label=f'$\\rho_dm = {rho_dm:.3f}$')
+#     ax[1].scatter(z, vdfo_norm_calc, label=f'$\\rho_dm = {rho_dm:.3f}$')
 
-ax[0].grid()
-ax[1].grid()
-ax[1].legend(prop={'size': 23})
-fig.tight_layout()
-fig.subplots_adjust(hspace=0.0)
-
-
-
-''' Visualisierung other params'''
-fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
-plt.title('Influence of other parameters')
-ax[0].set_xlabel('z/pc')
-ax[0].set_ylabel('$\Phi / (km/s)^2$')
-ax[1].set_xlabel('z/pc')
-ax[1].set_ylabel('$\\nu / \\nu_0 $')
-uz_pp, zs_pp = diffraxDopri5(rho_dm, params_pp, z0, z1, u0, f, n)
-ax[0].scatter(zs_pp, [u[0] for u in uz_pp], label='pp')
-vdfo_norm_calc_pp, z_pp = vdfo_norm(z0, z1, i_s, i_n, uz_pp, n)
-ax[1].scatter(z_pp, vdfo_norm_calc_pp, label='pp')
-uz_pm, zs_pm = diffraxDopri5(rho_dm, params_pm, z0, z1, u0, f, n)
-ax[0].scatter(zs_pm, [u[0] for u in uz_pm], label='pm')
-vdfo_norm_calc_pm, z_pm = vdfo_norm(z0, z1, i_s, i_n, uz_pm, n)
-ax[1].scatter(z_pm, vdfo_norm_calc_pm, label='pm')
-uz_mp, zs_mp = diffraxDopri5(rho_dm, params_mp, z0, z1, u0, f, n)
-ax[0].scatter(zs_mp, [u[0] for u in uz_mp], label='mp')
-vdfo_norm_calc_mp, z_mp = vdfo_norm(z0, z1, i_s, i_n, uz_mp, n)
-ax[1].scatter(z_mp, vdfo_norm_calc_mp, label='mp')
-uz_mm, zs_mm = diffraxDopri5(rho_dm, params_mm, z0, z1, u0, f, n)
-ax[0].scatter(zs_mm, [u[0] for u in uz_mm], label='mm')
-vdfo_norm_calc_mm, z_mm = vdfo_norm(z0, z1, i_s, i_n, uz_mm, n)
-ax[1].scatter(z_mm, vdfo_norm_calc_mm, label='mm')
-ax[0].grid()
-ax[1].grid()
-ax[1].legend()
-fig.tight_layout()
-fig.subplots_adjust(hspace=0.0)
+# ax[0].grid()
+# ax[1].grid()
+# ax[1].legend(prop={'size': 23})
+# fig.tight_layout()
+# fig.subplots_adjust(hspace=0.0)
 
 
 
-''' Visualisierung binning'''
-fig, ax = plt.subplots(2, 1, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
-plt.title('Binning')
-ax[0].set_xlabel('z/pc')
-ax[0].set_ylabel('$\\nu / \\nu_0 $ in bins')
-for i in range(len(z_borders)-1):
-    xmin = z_borders[i]
-    xmax = z_borders[i+1]
-    ax[0].hlines(integral[i], xmin, xmax, color='black')
-ax[0].scatter(z_borders[:-1], integral, marker='o', color='red')
-ax[0].grid()
-ax[0].legend()
-ax[1].set_xlabel('z/pc')
-ax[1].set_ylabel('$\\nu / \\nu_0 $')
-ax[1].scatter(z, vdfo_norm_calc, marker='o', color='blue')
-ax[1].grid()
-ax[1].legend()
-fig.tight_layout()
-fig.subplots_adjust(hspace=0.0)
+# ''' Visualisierung other params'''
+# fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+# plt.title('Influence of other parameters')
+# ax[0].set_xlabel('z/pc')
+# ax[0].set_ylabel('$\Phi / (km/s)^2$')
+# ax[1].set_xlabel('z/pc')
+# ax[1].set_ylabel('$\\nu / \\nu_0 $')
+# uz_pp, zs_pp = diffraxDopri5(rho_dm, params_pp, z0, z1, u0, f, n)
+# ax[0].scatter(zs_pp, [u[0] for u in uz_pp], label='pp')
+# vdfo_norm_calc_pp, z_pp = vdfo_norm(z0, z1, i_s, i_n, uz_pp, n)
+# ax[1].scatter(z_pp, vdfo_norm_calc_pp, label='pp')
+# uz_pm, zs_pm = diffraxDopri5(rho_dm, params_pm, z0, z1, u0, f, n)
+# ax[0].scatter(zs_pm, [u[0] for u in uz_pm], label='pm')
+# vdfo_norm_calc_pm, z_pm = vdfo_norm(z0, z1, i_s, i_n, uz_pm, n)
+# ax[1].scatter(z_pm, vdfo_norm_calc_pm, label='pm')
+# uz_mp, zs_mp = diffraxDopri5(rho_dm, params_mp, z0, z1, u0, f, n)
+# ax[0].scatter(zs_mp, [u[0] for u in uz_mp], label='mp')
+# vdfo_norm_calc_mp, z_mp = vdfo_norm(z0, z1, i_s, i_n, uz_mp, n)
+# ax[1].scatter(z_mp, vdfo_norm_calc_mp, label='mp')
+# uz_mm, zs_mm = diffraxDopri5(rho_dm, params_mm, z0, z1, u0, f, n)
+# ax[0].scatter(zs_mm, [u[0] for u in uz_mm], label='mm')
+# vdfo_norm_calc_mm, z_mm = vdfo_norm(z0, z1, i_s, i_n, uz_mm, n)
+# ax[1].scatter(z_mm, vdfo_norm_calc_mm, label='mm')
+# ax[0].grid()
+# ax[1].grid()
+# ax[1].legend()
+# fig.tight_layout()
+# fig.subplots_adjust(hspace=0.0)
+
+
+
+# ''' Visualisierung binning'''
+# fig, ax = plt.subplots(2, 1, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+# plt.title('Binning')
+# ax[0].set_xlabel('z/pc')
+# ax[0].set_ylabel('$\\nu / \\nu_0 $ in bins')
+# for i in range(len(z_borders)-1):
+#     xmin = z_borders[i]
+#     xmax = z_borders[i+1]
+#     ax[0].hlines(integral[i], xmin, xmax, color='black')
+# ax[0].scatter(z_borders[:-1], integral, marker='o', color='red')
+# ax[0].grid()
+# ax[0].legend()
+# ax[1].set_xlabel('z/pc')
+# ax[1].set_ylabel('$\\nu / \\nu_0 $')
+# ax[1].scatter(z, vdfo_norm_calc, marker='o', color='blue')
+# ax[1].grid()
+# ax[1].legend()
+# fig.tight_layout()
+# fig.subplots_adjust(hspace=0.0)
 
 
                                    
 
+''' Visualisierung other params'''
+fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+plt.title('Surface density')
+ax[0].set_xlabel('z/pc')
+ax[0].set_ylabel('$\Phi / (km/s)^2$')
+ax[1].set_xlabel('z/pc')
+ax[1].set_ylabel('$term$')
+
+ax[0].scatter(zs, [u[0] for u in uz])
+
+def test(params, u):
+    return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
+
+# test = jax.vmap(test, in_axes=(0, None))(params, uz)
+test = jnp.array([test(params, u) for u in uz])
+
+ax[1].scatter(zs, test)
+ax[0].grid()
+ax[1].grid()
+ax[1].legend()
+fig.tight_layout()
+fig.subplots_adjust(hspace=0.0)
+
+print(2*jnp.sum(test*(z1-z0)/(n-1)))
+print(49.4, '+-', 4.6)
