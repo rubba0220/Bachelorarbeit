@@ -37,7 +37,8 @@ def diffraxDopri5(rho_dm, params, z1, n):
                             t0=z0, t1=z1, dt0=None, y0=u0, args=(rho_dm, params), 
                             saveat=saveat,
                             adjoint=adjoint,
-                            stepsize_controller=stepsize_controller) #throw=False, max_steps=None
+                            stepsize_controller=stepsize_controller) 
+                            #throw=False, max_steps=None
 
     zs = sol.ts
     uz = sol.ys
