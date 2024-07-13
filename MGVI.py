@@ -1,16 +1,10 @@
-#jax bisher nur für CPU intslliert (pip install -U "jax[cpu]")
 import jax
 import jax.numpy as jnp
 import numpy as np
-import jax.lax as lax
 from jax import jit, random
-from functools import partial
 from matplotlib import pyplot as plt
-from scipy import constants as const
 import nifty8.re as jft
-import diffrax as dif
 import pandas as pd
-from jax.scipy.integrate import trapezoid
 import util
 import importlib
 importlib.reload(util)
@@ -28,7 +22,7 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
-''' Test des Algorithmus zur MGVI '''
+''' Algorithmus zur MGVI '''
 rhos = jnp.array([  0.021, 0.016, 0.012, 
                     0.0009, 0.0006, 0.0031, 
                     0.0015, 0.0020, 0.0022, 
@@ -57,14 +51,14 @@ rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
-def mgvi(am_min, am_max, s, i1, i2, z1, n):
-    z1 = z1
-    n = n
-    i_s = int((s/2000 * (n-1)))
-    i_n = int((s/2000 * (n-1)))
-    poly = np.loadtxt(f'poly_58.txt')
-    data = np.flip(np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int'))[i1:i2] + np.loadtxt(f'n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')[i1:i2]
-    bins = np.loadtxt(f'bins_{am_min:.0f}{am_max:.0f}.txt')[i1:i2+1]
+def mgvi(am_min, am_max, z2, z1, n):
+    poly = np.loadtxt(f'real data/poly_58.txt')
+    bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
+    i2 = np.where(bins<=z2)[0][-1]
+    i1 = np.where(bins>=z1)[0][0]
+    bins = bins[i1:i2+1]
+    n = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
+    data = np.flip(n)[i1:i2] + n[i1:i2]
     norm = np.sum(data)
     n_bins = int(len(bins)-1)
 
@@ -91,33 +85,26 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
                         [rho_s[12], sigma_s[12]], [rho_s[13], sigma_s[13]], [rho_s[14], sigma_s[14]]])
                 
                 rho_dm = rho_dm[0]
-
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
-
-                vdfo_norm_calc, z = util.vdfo_norm(z1, i_s, i_n, uz, n, poly)
-
-
-                integral, z_borders = util.binning(vdfo_norm_calc, z, n, i_s, n_bins)
+                vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
+                integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
 
                 return integral * norm/jnp.sum(integral)
 
             return complicated_function(rs, ss, rdm)
 
-    # This initialises your forward-model which computes something data-like
+
     fwd = ForwardModel()
 
     seed = 42
     key = random.PRNGKey(seed)
     lh = jft.Poissonian(data).amend(fwd)
 
-    # Now lets run the main inference scheme:
     n_vi_iterations = 6
     delta = 1e-4
     n_samples = 10
 
     key, k_i, k_o = random.split(key, 3)
-    # NOTE, changing the number of samples always triggers a resampling even if
-    # `resamples=False`, as more samples have to be drawn that did not exist before.
     samples, state = jft.optimize_kl(
         lh,
         jft.Vector(lh.init(k_i)),
@@ -151,8 +138,6 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
         resume=False,
     )
 
-    # Now the samples-object contains all the abstract parameters that were inferred
-    # Reading out the physical input parameter values goes e.g. like this:
     results = {}
 
     for k in range(15):
@@ -189,11 +174,12 @@ def mgvi(am_min, am_max, s, i1, i2, z1, n):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'real data/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'real data/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
-mgvi(5,6, 300, 23, 36, 1600., 1301)
-mgvi(6,7, 100, 42, 60, 1000., 901)
-mgvi(7,8, 100, 42, 53, 650., 551)
-mgvi(5,8, 240, 56, 67, 680., 441)
+
+mgvi(5,6, 300, 1600., 1601)
+mgvi(6,7, 100, 1000., 1001)
+mgvi(7,8, 100, 650., 651)
+mgvi(5,8, 240, 680., 681)
 
