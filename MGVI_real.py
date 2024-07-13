@@ -1,4 +1,4 @@
-#MGVI.py
+#MGVI_real.py
 import jax
 import jax.numpy as jnp
 import numpy as np

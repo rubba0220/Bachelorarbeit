@@ -132,3 +132,24 @@ def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
 #     _, integral = lax.scan(calculate_trapezoid_integral, 1, jnp.arange(n_bins))
 
 #     return jnp.array(integral), z_borders
+
+# @jit
+# def surface_density(params, uz)
+#     def test(params, u):
+#         return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
+
+#     sd = jnp.array([test(params, u) for u in uz])
+#     return sd
+
+@partial(jit, static_argnames=['n', 'z1'])
+def surface_density(params, uz, z1, n):
+
+    def term(params, u):
+        return jnp.sum(params[:, 0] * jnp.exp(-u[0] / params[:, 1]**2))
+
+    def scan_fn(carry, u):
+        result = term(params, u)
+        return carry, result
+
+    _, sd = lax.scan(scan_fn, None, uz)
+    return 2*jnp.sum(sd*(z1-z0)/(n-1))

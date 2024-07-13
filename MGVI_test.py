@@ -1,15 +1,14 @@
-#jax bisher nur für CPU intslliert (pip install -U "jax[cpu]")
+#MGVI_test.py
 import jax
 import jax.numpy as jnp
-import jax.lax as lax
+import numpy as np
 from jax import jit, random
-from functools import partial
 from matplotlib import pyplot as plt
-from scipy import constants as const
 import nifty8.re as jft
-import diffrax as dif
 import pandas as pd
-from jax.scipy.integrate import trapezoid
+import util
+import importlib
+importlib.reload(util)
 
 import time
 jax.config.update("jax_enable_x64", True)
@@ -23,137 +22,6 @@ plt.rcParams['axes.labelsize'] = 'medium'
 plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
-
-G = const.G / (3.0857E+16)**3 * 1.989E+30 * (3.0857E+13)**2
-                            #Umrechnung in pc^3/M_sun/s^2 (grav pot in (km/s)^2)
-                            #Umrechnung, sodass z in parsec
-
-n = 3001
-i_s = int(200/3000 * (n-1))
-i_n = int(200/3000 * (n-1))
-
-#Formulierung des Anfangswertproblems (z taucht in den Formeln auf, um an anderen DGLs zu testen)
-f = lambda rho_dm, params, z, u: jnp.array([u[1], \
-            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) + rho_dm)])
-z0 = 0.
-z1 = 3000.
-u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
-
-#numerische Lösung (mittels Dopri5/rk4)
-@partial(jit, static_argnames=['f', 'n']) 
-def diffraxDopri5(rho_dm, params, z0, z1, u0, f, n):
-
-    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
-    term = dif.ODETerm(vector_field)
-    solver = dif.Dopri5()
-    saveat = dif.SaveAt(ts=jnp.linspace(0, z1, n))
-    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
-    adjoint = dif.DirectAdjoint()
-
-    sol = dif.diffeqsolve(  term, solver, 
-                            t0=z0, t1=z1, dt0=None, y0=u0, args=(rho_dm, params), 
-                            saveat=saveat,
-                            adjoint=adjoint,
-                            stepsize_controller=stepsize_controller) #throw=False, max_steps=None
-
-    zs = sol.ts
-    uz = sol.ys
-
-    return uz, zs
-
-@partial(jit, static_argnames=['f', 'n'])
-def eigenerSolverV2(rho_dm, params, z0, z1, u0, f, n):
-    dz = (z1-z0)/(n-1)
-
-    # Runge-Kutta 4. Ordnung
-    def rk4_step(rho_dm, params, z0, dz, u0, f):
-        k1 = dz * f(rho_dm, params, z0, u0)
-        k2 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k1 / 2)
-        k3 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k2 / 2)
-        k4 = dz * f(rho_dm, params, z0 + dz, u0 + k3)
-        u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
-        return u1
-
-    def rk4_step_scan(u, x):
-        return rk4_step(rho_dm, params, x, dz, u, f), \
-            rk4_step(rho_dm, params, x, dz, u, f)
-
-    zs = jnp.linspace(z0, z1, n)
-    _, uz = lax.scan(rk4_step_scan, u0, zs[:-1])
-    uz = jnp.concatenate([jnp.array([u0]), uz], axis=0)
-
-    return uz, zs
-
-#Berechnung des tracer density drop off
-@partial(jit, static_argnames=['n', 'i_s', 'i_n'])
-def vdfo_norm(z0, z1, i_s, i_n, uz, n):
-    dz = (z1-z0)/(n-1)
-
-    #mock velocity dispersion function
-    def sigma(z):
-        return 20. + 17.*z/1000. #z in pc, sigma in km/s
-    
-    z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    sigma_sq_norm = (sigma(z)/sigma(z0+i_n*dz))**(2)
-    z_ns = jnp.linspace(z0+i_n*dz, z0+(i_s-1)*dz, i_s-i_n)
-    sigmass = sigma(z_ns)
-
-    exp_int = jnp.exp(-jnp.sum(\
-                sigmass**(-2) \
-                * jnp.array(uz)[i_n:i_s,1] * dz))
-
-    def exp_int_step(exp_int, i):
-        return exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz), \
-                exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * jnp.array(uz)[i,1] * dz)
-
-    _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i_s, n-1, 1)) #letzter Punkt wird nicht genutzt (Riemannsumme links)
-
-    exp_int_list = jnp.concatenate([jnp.array([exp_int]), exp_int_list], axis=0)
-
-    vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
-
-    return vdfo_norm_calc, z
-
-@partial(jit, static_argnames=['n', 'i_s'])
-def binning(vdfo_norm_calc, z, n, i_s):
-    l = int((n-i_s-1)/20)
-    z_borders = z[0::l]
-
-    integral = []
-    for i in range(20):
-        integral += [trapezoid(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])]
-    integral = jnp.array(integral)
-
-    # def bin(vdfo_norm_calc, i):
-    #     integral = simpson(vdfo_norm_calc[i*l:(i+1)*l], z[i*l:(i+1)*l])
-    #     vdfo_norm_calc[i*l:(i+1)*l] = 0
-    #     return vdfo_norm_calc, integral
-    
-    # _, integral = lax.scan(bin, vdfo_norm_calc, jnp.arange(10))
-
-    return integral, z_borders
-
-# @jit
-# def surface_density(params, uz)
-#     def test(params, u):
-#         return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
-
-#     sd = jnp.array([test(params, u) for u in uz])
-#     return sd
-
-@jit
-def surface_density(params, uz):
-
-    def term(params, u):
-        return jnp.sum(params[:, 0] * jnp.exp(-u[0] / params[:, 1]**2))
-
-    def scan_fn(carry, u):
-        result = term(params, u)
-        return carry, result
-
-    _, sd = lax.scan(scan_fn, None, uz)
-    return 2*jnp.sum(sd*(z1-z0)/(n-1))
-
 
 ''' Test des Algorithmus zur MGVI '''
 rhos = jnp.array([  0.021, 0.016, 0.012, 
@@ -184,6 +52,12 @@ rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
+z2 = 0.
+z1 = 3000.
+n = 3001
+poly = (0,0)
+norm = 5000
+
 class ForwardModel(jft.Model):
     def __init__(self):
         self.rho_s = rho_s
@@ -208,21 +82,16 @@ class ForwardModel(jft.Model):
             
             rho_dm = rho_dm[0]
 
-            uz, zs = diffraxDopri5(rho_dm, params, z0, z1, u0, f, n)
+            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+            vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, mock=True)
+            integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, 20)
+            #surface_density_calc = util.surface_density(params, uz, z1, n)
 
-            vdfo_norm_calc, z = vdfo_norm(z0, z1, i_s, i_n, uz, n)
+            return integral * norm/jnp.sum(integral)#, surface_density_calc
 
-            norm = trapezoid(vdfo_norm_calc, z)
+        return1 = complicated_function(rs, ss, rdm)
 
-            integral, z_borders = binning(vdfo_norm_calc/norm, z, n, i_s)
-
-            surface_density_calc = surface_density(params, uz)
-
-            return integral * 5000/jnp.sum(integral), surface_density_calc
-
-        return1, return2 = complicated_function(rs, ss, rdm)
-
-        return return1, return2
+        return return1#, return2
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
@@ -234,34 +103,36 @@ def test_mgvi(s):
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
 
-    data = jnp.round(fwd_truth[0],0)
+    data = jnp.round(fwd_truth,0)#[0],0)
     data = data.astype(int)
-    surface_density_truth = fwd_truth[1]
-    print(surface_density_truth)
+ 
+    # surface_density_truth = fwd_truth[1]
+    # print(surface_density_truth)
 
-    noise_cov = lambda x: 0.1 * x
-    noise_cov_inv = lambda x: 1. / 0.1 * x
+    # noise_cov = lambda x: 0.1 * x
+    # noise_cov_inv = lambda x: 1. / 0.1 * x
 
-    # And this adds some random noise
-    key, subkey = random.split(key)
-    noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
-    ) * jft.random_like(key, fwd.target[1])
-    surface_density_truth = surface_density_truth + noise_truth
-    print(surface_density_truth, noise_truth)
+    # # And this adds some random noise
+    # key, subkey = random.split(key)
+    # noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
+    # ) * jft.random_like(key, fwd.target[1])
+    # surface_density_truth = surface_density_truth + noise_truth
+    # print(surface_density_truth, noise_truth)
 
-    #Visualisierung
-    dz = (z1-z0)/(n-1)
-    l = int((n-i_s-1)/20)
-    z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    z_borders = z[0::l]
-    fig, ax = plt.subplots(figsize=(20,10))
-    ax.set_xlabel('z/pc')
-    ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter(z_borders[:-1], data, marker='o')
-    ax.grid()
-    fig.tight_layout()
+    # #Visualisierung
+    # dz = (z1-z0)/(n-1)
+    # l = int((n-i_s-1)/20)
+    # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
+    # z_borders = z[0::l]
+    # fig, ax = plt.subplots(figsize=(20,10))
+    # ax.set_xlabel('z/pc')
+    # ax.set_ylabel('$\\nu / \\nu_0 $')
+    # ax.scatter(z_borders[:-1], data, marker='o')
+    # ax.grid()
+    # fig.tight_layout()
 
-    lh = (jft.Poissonian(data)*jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
+    lh = jft.Poissonian(data).amend(fwd)
+    #lh = (jft.Poissonian(data)*jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
     # lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
 
