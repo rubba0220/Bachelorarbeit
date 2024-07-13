@@ -85,19 +85,24 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
         ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
         residuenplot('True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
 
-# Auswertung('data_rho.csv', 'data_sigma.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_eigen_uniform.csv', 'data_sigma_eigen_uniform.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_eigen_uniform2.csv', 'data_sigma_eigen_uniform2.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_eigen_lognormal.csv', 'data_sigma_eigen_lognormal.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_eigen_lognormal2.csv', 'data_sigma_eigen_lognormal2.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_more.csv', 'data_sigma_more.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_neuenorm.csv', 'data_sigma_neuenorm.csv', name='changes', Zoom = None)
-# Auswertung('data_rho_binning.csv', 'data_sigma_binning.csv', name='changes', Zoom = None)
-Auswertung('data_rho_binning_more.csv', 'data_sigma_binning_more.csv', name='changes', Zoom = None)
+# Auswertung('data2/data_rho.csv', 'data2/data_sigma.csv', name='changes', Zoom = None)
+
+# Auswertung('data2/data_rho_eigen_uniform.csv', 'data2/data_sigma_eigen_uniform.csv', name='changes', Zoom = None)
+# Auswertung('data2/data_rho_eigen_uniform2.csv', 'data2/data_sigma_eigen_uniform2.csv', name='changes', Zoom = None)
+
+# Auswertung('data2/data_rho_eigen_lognormal.csv', 'data2/data_sigma_eigen_lognormal.csv', name='changes', Zoom = None)
+# Auswertung('data2/data_rho_eigen_lognormal2.csv', 'data2/data_sigma_eigen_lognormal2.csv', name='changes', Zoom = None)
+
+# Auswertung('data3/data_rho_more.csv', 'data3/data_sigma_more.csv', name='changes', Zoom = None)
+
+# Auswertung('data3/data_rho_neuenorm.csv', 'data3/data_sigma_neuenorm.csv', name='changes', Zoom = None)
+
+# Auswertung('data3/data_rho_binning.csv', 'data_sigma_binning.csv', name='changes', Zoom = None)
+# Auswertung('data3/data_rho_binning_more.csv', 'data_sigma_binning_more.csv', name='changes', Zoom = None)
 
 
 
-# data_roh = pd.read_csv('data_rho_more.csv', header=None)
+# data_roh = pd.read_csv('data3/data_rho_more.csv', header=None)
 
 # truthr = jnp.array(data_roh.iloc[:,0])
 # inferredr = jnp.array(data_roh.iloc[:,1])
