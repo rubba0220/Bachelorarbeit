@@ -1,3 +1,4 @@
+#MGVI.py
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -56,9 +57,9 @@ def mgvi(am_min, am_max, z2, z1, n):
     bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
     i2 = np.where(bins<=z2)[0][-1]
     i1 = np.where(bins>=z1)[0][0]
-    bins = bins[i1:i2+1]
-    n = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
-    data = np.flip(n)[i1:i2] + n[i1:i2]
+    bins = bins[i2:i1+1]
+    data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
+    data = np.flip(data)[i2:i1] + data[i2:i1]
     norm = np.sum(data)
     n_bins = int(len(bins)-1)
 
@@ -85,6 +86,7 @@ def mgvi(am_min, am_max, z2, z1, n):
                         [rho_s[12], sigma_s[12]], [rho_s[13], sigma_s[13]], [rho_s[14], sigma_s[14]]])
                 
                 rho_dm = rho_dm[0]
+
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
                 vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
                 integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
@@ -178,8 +180,8 @@ def mgvi(am_min, am_max, z2, z1, n):
     dfs.to_csv(f'real data/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
 
-mgvi(5,6, 300, 1600., 1601)
-mgvi(6,7, 100, 1000., 1001)
-mgvi(7,8, 100, 650., 651)
-mgvi(5,8, 240, 680., 681)
+mgvi(5,6, 300., 1600., 1601)
+mgvi(6,7, 100., 1000., 1001)
+mgvi(7,8, 100., 650., 651)
+mgvi(5,8, 240., 680., 681)
 
