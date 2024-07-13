@@ -13,7 +13,12 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
-
+rho_dm = 0.025
+params = jnp.array([[0.021, 4.], [0.016, 7.], [0.012, 9.], \
+                    [0.0009, 40.], [0.0006, 20.], [0.0031, 7.5], \
+                    [0.0015, 10.5], [0.0020, 14.], [0.0022, 18.], \
+                    [0.007, 18.5], [0.0135, 18.5], [0.006, 20.], \
+                    [0.002, 20.], [0.0035, 37.], [0.0001, 100.]]) 
 
 def linreg(x,y,ey,ini=[1,1]):
 
@@ -32,7 +37,7 @@ def linreg(x,y,ey,ini=[1,1]):
 
 
 
-def residuenplot(var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chiq, name='', save=False, Zoom = None):
+def residuenplot(param, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chiq, name='', save=False, Zoom = None):
     
     fig, axarray = plt.subplots(2, 1, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [5, 2]})
     plt.title(name)
@@ -45,6 +50,7 @@ def residuenplot(var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chi
     axarray[0].plot(v_x, m*v_x+b, color='green', label='${0:.2f}*x+{1:.2f}$'.format(m, b))
     sigmaRes = jnp.sqrt((m*v_s_x)**2 + v_s_y**2)
     axarray[0].plot([jnp.min(v_x), jnp.max(v_x)], [jnp.min(v_x), jnp.max(v_x)], color='black', linestyle='--', label='Erwartung')
+    axarray[0].axhline(y=param, color='blue', linestyle='--', label='Literaturwert')
     axarray[1].axhline(y=0., color='black', linestyle='--')
     axarray[1].errorbar(v_x, v_y-(m*v_x+b), yerr=sigmaRes, color='red', fmt='o', markeredgecolor='red')
     axarray[1].set_xlabel('${0}$ / ${1}$'.format(var_x, unit_x))
@@ -79,11 +85,11 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 
     for i in range(16):
         mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[i::16], inferredr[i::16], stdr[i::16])
-        residuenplot('True Value', 'a.u.', truthr[i::16], 0, 'Inferred Value', 'a.u.', inferredr[i::16], stdr[i::16], mr, br, chiqr, name=f'Rho_{i+1} ' + name, save=False, Zoom = Zoom)
+        residuenplot(jnp.append(params[:,0],rho_dm)[i], 'True Value', 'a.u.', truthr[i::16], 0, 'Inferred Value', 'a.u.', inferredr[i::16], stdr[i::16], mr, br, chiqr, name=f'Rho_{i+1} ' + name, save=False, Zoom = Zoom)
 
     for i in range(15):
         ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
-        residuenplot('True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
+        residuenplot(params[:,1][i], 'True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
 
 # Auswertung('data2/data_rho.csv', 'data2/data_sigma.csv', name='changes', Zoom = None)
 
@@ -97,8 +103,8 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 
 # Auswertung('data3/data_rho_neuenorm.csv', 'data3/data_sigma_neuenorm.csv', name='changes', Zoom = None)
 
-# Auswertung('data3/data_rho_binning.csv', 'data_sigma_binning.csv', name='changes', Zoom = None)
-# Auswertung('data3/data_rho_binning_more.csv', 'data_sigma_binning_more.csv', name='changes', Zoom = None)
+# Auswertung('data3/data_rho_binning.csv', 'data3/data_sigma_binning.csv', name='changes', Zoom = None)
+Auswertung('data3/data_rho_binning_more.csv', 'data3/data_sigma_binning_more.csv', name='changes', Zoom = None)
 
 
 
