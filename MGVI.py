@@ -57,6 +57,8 @@ def mgvi(am_min, am_max, z2, z1, n):
     bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
     i2 = np.where(bins<=z2)[0][-1]
     i1 = np.where(bins>=z1)[0][0]
+    z2 = bins[i2]
+    z1 = bins[i1]
     bins = bins[i2:i1+1]
     data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
     data = np.flip(data)[i2:i1] + data[i2:i1]
@@ -179,9 +181,14 @@ def mgvi(am_min, am_max, z2, z1, n):
     dfr.to_csv(f'real data/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
     dfs.to_csv(f'real data/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
-
-mgvi(5,6, 300., 1600., 1601)
-mgvi(6,7, 100., 1000., 1001)
-mgvi(7,8, 100., 650., 651)
-mgvi(5,8, 240., 680., 681)
+t0 = time.time()
+mgvi(5,6, 0., 1600., 1601)
+t1 = time.time()
+print(t1-t0)
+t0 = time.time()
+mgvi(6,7, 0., 1600., 1601)
+t1 = time.time()
+print(t1-t0)
+#mgvi(7,8, 100., 650., 651)
+#mgvi(5,8, 240., 680., 681)
 
