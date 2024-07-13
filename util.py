@@ -69,17 +69,19 @@ def eigenerSolverV2(rho_dm, params, z1, n):
     return uz, zs
 
 #Berechnung des tracer density drop off
-@partial(jit, static_argnames=['n', 'z1', 'z2'])
-def vdfo_norm(z2, z1, zs, uz, n, poly):
+@partial(jit, static_argnames=['n', 'z1', 'z2', 'mock'])
+def vdfo_norm(z2, z1, zs, uz, n, poly, mock=False):
     dz = (z1-z0)/(n-1)
 
-    # #still mock velocity dispersion
-    # def sigma(z):
-    #     return jnp.sqrt(poly[0]*z + poly[1])
+    #still mock velocity dispersion
+    if mock == False:
+        def sigma(z):
+           return jnp.sqrt(poly[0]*z + poly[1])
 
     #mock velocity dispersion function
-    def sigma(z):
-        return 20. + 17.*z/1000. #z in pc, sigma in km/s
+    if mock == True:
+        def sigma(z):
+         return 17. + 20.*z/1200. #z in pc, sigma in km/s
 
     i_s = int((z2-z0)/(z1-z0) * (n-1))
     
