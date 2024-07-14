@@ -80,13 +80,7 @@ def mgvi(am_min, am_max, z2, z1, n):
             rdm = self.rho_dm(x)
 
             def complicated_function(rho_s, sigma_s, rho_dm):
-                params = jnp.array([
-                        [rho_s[0], sigma_s[0]], [rho_s[1], sigma_s[1]], [rho_s[2], sigma_s[2]],
-                        [rho_s[3], sigma_s[3]], [rho_s[4], sigma_s[4]], [rho_s[5], sigma_s[5]],
-                        [rho_s[6], sigma_s[6]], [rho_s[7], sigma_s[7]], [rho_s[8], sigma_s[8]],
-                        [rho_s[9], sigma_s[9]], [rho_s[10], sigma_s[10]], [rho_s[11], sigma_s[11]],
-                        [rho_s[12], sigma_s[12]], [rho_s[13], sigma_s[13]], [rho_s[14], sigma_s[14]]])
-                
+                params = jnp.column_stack((rho_s, sigma_s))
                 rho_dm = rho_dm[0]
 
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)

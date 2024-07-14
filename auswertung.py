@@ -104,7 +104,11 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 # Auswertung('data3/data_rho_neuenorm.csv', 'data3/data_sigma_neuenorm.csv', name='changes', Zoom = None)
 
 # Auswertung('data3/data_rho_binning.csv', 'data3/data_sigma_binning.csv', name='changes', Zoom = None)
-Auswertung('data3/data_rho_binning_more.csv', 'data3/data_sigma_binning_more.csv', name='changes', Zoom = None)
+# Auswertung('data3/data_rho_binning_more.csv', 'data3/data_sigma_binning_more.csv', name='changes', Zoom = None)
+
+
+
+# Auswertung('data_rho.csv', 'data_sigma.csv', name='changes', Zoom = None)
 
 
 
