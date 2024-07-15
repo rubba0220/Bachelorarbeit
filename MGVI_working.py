@@ -1,7 +1,6 @@
-#MGVI_working.py
+#MGVI_test.py
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import jit, random
 from matplotlib import pyplot as plt
 import nifty8.re as jft
@@ -23,42 +22,37 @@ plt.rcParams['axes.labelweight'] = 'bold'
 plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
-''' Test des Algorithmus zur MGVI '''
-rhos = jnp.array([  0.021, 0.016, 0.012, 
-                    0.0009, 0.0006, 0.0031, 
-                    0.0015, 0.0020, 0.0022, 
-                    0.007, 0.0135, 0.006, 
-                    0.002, 0.0035, 0.0001])
-
-sigmas = jnp.array([4., 7., 9., 
-                    40., 20., 7.5, 
-                    10.5, 14., 18., 
-                    18.5, 18.5, 20., 
-                    20., 37., 100.])
-
-erhos = jnp.array([ 0.5, 0.5, 0.5,
-                    0.5, 0.2, 0.2,
-                    0.2, 0.2, 0.2,
-                    0.2, 0.2, 0.2,
-                    0.2, 0.2, 0.2]) * rhos
-
-esigmas = jnp.array([   1., 1., 1.,
-                        1., 2., 2.,
-                        2., 2., 2.,
-                        2., 2., 5.,
-                        5., 5., 10.])
+''' Massenmodell '''
+rhos = jnp.array([0.021, 0.016, 0.012, 0.0009, 0.0006, 0.0031, 0.0015, 0.0020, 0.0022, 0.007, 0.0135, 0.006, 0.002, 0.0035, 0.0001])
+sigmas = jnp.array([4., 7., 9., 40., 20., 7.5, 10.5, 14., 18., 18.5, 18.5, 20., 20., 37., 100.])
+erhos = jnp.array([ 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) * rhos
+esigmas = jnp.array([1., 1., 1., 1., 2., 2., 2., 2., 2., 2., 2., 5., 5., 5., 10.])
 
 rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
+''' Domain '''
 z2 = 0.
 z1 = 3000.
 n = 3001
 poly = (0,0)
 norm = 5000
+n_bins = 20
 
-class ForwardModel(jft.Model):
+''' Forward Models '''
+def complicated_function(rho_s, sigma_s, rho_dm):
+    params = jnp.column_stack((rho_s, sigma_s))
+    rho_dm = rho_dm[0]
+
+    uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+    vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, mock=True)
+    integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
+    surface_density_calc = util.surface_density(params, uz, z1, n)
+
+    return jnp.append(integral * norm/jnp.sum(integral), surface_density_calc)
+
+class ForwardModel_dfo(jft.Model):
     def __init__(self):
         self.rho_s = rho_s
         self.sigma_s = sigma_s
@@ -71,67 +65,69 @@ class ForwardModel(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
+        return complicated_function(rs, ss, rdm)[:-1]
+    
+class ForwardModel_sd(jft.Model):
+    def __init__(self):
+        self.rho_s = rho_s
+        self.sigma_s = sigma_s
+        self.rho_dm = rho_dm
 
-        def complicated_function(rho_s, sigma_s, rho_dm):
-            params = jnp.column_stack((rho_s, sigma_s))
-            rho_dm = rho_dm[0]
+        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
 
-
-            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
-            vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, mock=True)
-            integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, 20)
-            surface_density_calc = util.surface_density(params, uz, z1, n)
-
-            return integral * norm/jnp.sum(integral), surface_density_calc
-
-        return1, return2 = complicated_function(rs, ss, rdm)
-
-        return return1, return2
+    @jit
+    def __call__(self, x):
+        rs = self.rho_s(x)
+        ss = self.sigma_s(x)
+        rdm = self.rho_dm(x)
+        return complicated_function(rs, ss, rdm)[-1]
 
 # This initialises your forward-model which computes something data-like
-fwd = ForwardModel()
+fwd_dfo = ForwardModel_dfo()
+fwd_sd = ForwardModel_sd()
+
+''' Testing MGVI '''
 def test_mgvi(s):
     seed = s
     key = random.PRNGKey(seed)
 
     key, subkey = random.split(key)
-    pos_truth = jft.random_like(subkey, fwd.domain)
-    fwd_truth = fwd(pos_truth)
+    pos_truth = jft.random_like(subkey, fwd_dfo.domain) #egal welches fwd, da domain die gleiche
+    dfo_truth = fwd_dfo(pos_truth)
+    sd_truth = fwd_sd(pos_truth)
 
-    data = jnp.round(fwd_truth[0],0)
-    data = data.astype(int)
- 
-    surface_density_truth = fwd_truth[1]
-    print(surface_density_truth)
+    dfo_truth = jnp.round(dfo_truth,0)
+    dfo_truth = dfo_truth.astype(int)
 
     noise_cov = lambda x: 0.1 * x
     noise_cov_inv = lambda x: 1. / 0.1 * x
 
-    # And this adds some random noise
     key, subkey = random.split(key)
-    noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
-    ) * jft.random_like(key, fwd.target[1])
-    surface_density_truth = surface_density_truth + noise_truth
-    print(surface_density_truth, noise_truth)
+    noise_truth = ((noise_cov(sd_truth)) ** 0.5) * jft.random_like(key, fwd_sd.target)
+    sd_truth = sd_truth + noise_truth
+    
+    print(sd_truth, noise_truth)
 
-    # #Visualisierung
-    # dz = (z1-z0)/(n-1)
-    # l = int((n-i_s-1)/20)
-    # z = jnp.linspace(z0+i_s*dz, z1, n-i_s)
-    # z_borders = z[0::l]
-    # fig, ax = plt.subplots(figsize=(20,10))
-    # ax.set_xlabel('z/pc')
-    # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter(z_borders[:-1], data, marker='o')
-    # ax.grid()
-    # fig.tight_layout()
+    #Visualisierung
+    i_s = int((z2-0.)/(z1-0.) * (n-1))
+    l = int((n-i_s-1)/n_bins)
+    z = jnp.linspace(0., z1, n)[i_s:]
+    z_borders = z[0::l]
+    fig, ax = plt.subplots(figsize=(20,10))
+    ax.set_xlabel('z/pc')
+    ax.set_ylabel('$\\nu / \\nu_0 $')
+    ax.scatter(z_borders[:-1], dfo_truth, marker='o')
+    ax.grid()
+    fig.tight_layout()
 
-    lh = jft.Poissonian(data).amend(fwd)
-    #lh = (jft.Poissonian(data)+jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
-    # lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
+    lh_dfo = jft.Poissonian(dfo_truth).amend(fwd_dfo)
+    print(lh_dfo.domain)
+    lh_sd = jft.Gaussian(sd_truth, noise_cov_inv).amend(fwd_sd)
+
+    lh = jft.likelihood.LikelihoodSum(lh_dfo, lh_sd)
 
 
-    # Now lets run the main inference scheme:
+    ''# Now lets run the main inference scheme:
     n_vi_iterations = 6
     delta = 1e-4
     n_samples = 10
@@ -220,8 +216,10 @@ def test_mgvi(s):
 
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'data_rho_test.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma_test.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_rho.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma.csv', mode='a', header=False, index=False)
+
+
 
 seed = 4
 key = random.PRNGKey(seed)

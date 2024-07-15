@@ -134,7 +134,8 @@ def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
 #     return jnp.array(integral), z_borders
 
 # @jit
-# def surface_density(params, uz)
+# def surface_density(params, uz):
+
 #     def test(params, u):
 #         return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
 
