@@ -1,4 +1,4 @@
-#MGVI_test.py
+#MGVI_working.py
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -80,13 +80,13 @@ class ForwardModel(jft.Model):
             uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
             vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, mock=True)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, 20)
-            #surface_density_calc = util.surface_density(params, uz, z1, n)
+            surface_density_calc = util.surface_density(params, uz, z1, n)
 
-            return integral * norm/jnp.sum(integral)#, surface_density_calc
+            return integral * norm/jnp.sum(integral), surface_density_calc
 
-        return1 = complicated_function(rs, ss, rdm)
+        return1, return2 = complicated_function(rs, ss, rdm)
 
-        return return1#, return2
+        return return1, return2
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
@@ -98,21 +98,21 @@ def test_mgvi(s):
     pos_truth = jft.random_like(subkey, fwd.domain)
     fwd_truth = fwd(pos_truth)
 
-    data = jnp.round(fwd_truth,0)#[0],0)
+    data = jnp.round(fwd_truth[0],0)
     data = data.astype(int)
  
-    # surface_density_truth = fwd_truth[1]
-    # print(surface_density_truth)
+    surface_density_truth = fwd_truth[1]
+    print(surface_density_truth)
 
-    # noise_cov = lambda x: 0.1 * x
-    # noise_cov_inv = lambda x: 1. / 0.1 * x
+    noise_cov = lambda x: 0.1 * x
+    noise_cov_inv = lambda x: 1. / 0.1 * x
 
-    # # And this adds some random noise
-    # key, subkey = random.split(key)
-    # noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
-    # ) * jft.random_like(key, fwd.target[1])
-    # surface_density_truth = surface_density_truth + noise_truth
-    # print(surface_density_truth, noise_truth)
+    # And this adds some random noise
+    key, subkey = random.split(key)
+    noise_truth = ((noise_cov(surface_density_truth)) ** 0.5
+    ) * jft.random_like(key, fwd.target[1])
+    surface_density_truth = surface_density_truth + noise_truth
+    print(surface_density_truth, noise_truth)
 
     # #Visualisierung
     # dz = (z1-z0)/(n-1)
@@ -127,7 +127,7 @@ def test_mgvi(s):
     # fig.tight_layout()
 
     lh = jft.Poissonian(data).amend(fwd)
-    #lh = (jft.Poissonian(data)*jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
+    #lh = (jft.Poissonian(data)+jft.Gaussian(surface_density_truth, noise_cov_inv)).amend(fwd)
     # lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
 
