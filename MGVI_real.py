@@ -24,29 +24,10 @@ plt.rcParams['axes.linewidth'] = 1.2
 plt.rcParams['lines.linewidth'] = 2.0
 
 ''' Algorithmus zur MGVI '''
-rhos = jnp.array([  0.021, 0.016, 0.012, 
-                    0.0009, 0.0006, 0.0031, 
-                    0.0015, 0.0020, 0.0022, 
-                    0.007, 0.0135, 0.006, 
-                    0.002, 0.0035, 0.0001])
-
-sigmas = jnp.array([4., 7., 9., 
-                    40., 20., 7.5, 
-                    10.5, 14., 18., 
-                    18.5, 18.5, 20., 
-                    20., 37., 100.])
-
-erhos = jnp.array([ 0.5, 0.5, 0.5,
-                    0.5, 0.2, 0.2,
-                    0.2, 0.2, 0.2,
-                    0.2, 0.2, 0.2,
-                    0.2, 0.2, 0.2]) * rhos
-
-esigmas = jnp.array([   1., 1., 1.,
-                        1., 2., 2.,
-                        2., 2., 2.,
-                        2., 2., 5.,
-                        5., 5., 10.])
+rhos = jnp.array([0.021, 0.016, 0.012, 0.0009, 0.0006, 0.0031, 0.0015, 0.0020, 0.0022, 0.007, 0.0135, 0.006, 0.002, 0.0035, 0.0001])
+sigmas = jnp.array([4., 7., 9., 40., 20., 7.5, 10.5, 14., 18., 18.5, 18.5, 20., 20., 37., 100.])
+erhos = jnp.array([0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) * rhos
+esigmas = jnp.array([1., 1., 1., 1., 2., 2., 2., 2., 2., 2., 2., 5., 5., 5., 10.])
 
 rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
@@ -86,21 +67,25 @@ def mgvi(am_min, am_max, z2, z1, n):
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
                 vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
                 integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
+                surface_density_calc = util.surface_density(params, uz, z1, n)
 
-                return integral * norm/jnp.sum(integral)
-
-            return complicated_function(rs, ss, rdm)
-
+                return integral * norm/jnp.sum(integral), surface_density_calc
+            dfo, sd = complicated_function(rs, ss, rdm)
+            return jft.Vector({'dfo': dfo, 'sd': sd})
 
     fwd = ForwardModel()
+    R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
+    R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 
-    seed = 42
-    key = random.PRNGKey(seed)
-    lh = jft.Poissonian(data).amend(fwd)
+    lh_dfo = jft.Poissonian(data).amend(R_dfo)
+    lh_sd = jft.Gaussian(49.4, lambda x: 1/4.6**2 * x).amend(R_sd)
+    lh = (lh_dfo + lh_sd).amend(fwd)
 
     n_vi_iterations = 6
     delta = 1e-4
     n_samples = 10
+    seed = 42
+    key = random.PRNGKey(seed)
 
     key, k_i, k_o = random.split(key, 3)
     samples, state = jft.optimize_kl(
@@ -145,6 +130,8 @@ def mgvi(am_min, am_max, z2, z1, n):
         exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
     results["rhodm"] = jft.mean_and_std(results["rhosdm"])
+    results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
+    results["surfd"] = jft.mean_and_std(results["surfds"])
 
     meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
     stdr = [results[f'rho{k+1}'][1] for k in range(15)] + [results['rhodm'][1]]
@@ -169,20 +156,31 @@ def mgvi(am_min, am_max, z2, z1, n):
 
         "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
     }
+    meansd = [results['surfd'][0]]
+    stdsd = [results['surfd'][1]]
 
+    data_sd = {
+        "Inferred Value sd": meansd,
+
+        "Standard Deviation sd": stdsd,
+
+        "Samples sd": [results['surfds']],
+    }
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
-    dfr.to_csv(f'real data/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'real data/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfsd = pd.DataFrame(data_sd)
+    dfr.to_csv(f'real data2/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'real data2/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'real data2/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
 
 t0 = time.time()
 mgvi(5,6, 0., 1600., 1601)
 t1 = time.time()
 print(t1-t0)
-t0 = time.time()
-mgvi(6,7, 0., 1600., 1601)
-t1 = time.time()
-print(t1-t0)
+# t0 = time.time()
+# mgvi(6,7, 0., 1600., 1601)
+# t1 = time.time()
+# print(t1-t0)
 #mgvi(7,8, 100., 650., 651)
 #mgvi(5,8, 240., 680., 681)
 
