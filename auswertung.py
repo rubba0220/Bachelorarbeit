@@ -71,7 +71,7 @@ def residuenplot(param, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m,
 
 
 
-def Auswertung(file_roh, file_sigma, name='', Zoom = None):
+def Auswertung(file_roh, file_sigma, file_sd=None, name='', Zoom = None):
     data_roh = pd.read_csv(file_roh, header=None)
     data_sigma = pd.read_csv(file_sigma, header=None)
 
@@ -82,6 +82,14 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
     truths = jnp.array(data_sigma.iloc[:,0])
     inferreds = jnp.array(data_sigma.iloc[:,1])
     stds = jnp.array(data_sigma.iloc[:,2])
+
+    if file_sd != None:
+        data_sd = pd.read_csv(file_sd, header=None)
+        truthsd = jnp.array(data_sd.iloc[:,0])
+        inferredsd = jnp.array(data_sd.iloc[:,1])
+        stdsd = jnp.array(data_sd.iloc[:,2])
+        msd, emsd, bsd, ebsd, chiqsd, ndofsd = linreg(truthsd, inferredsd, stdsd)
+        residuenplot(0, 'True Value', 'a.u.', truthsd, 0, 'Inferred Value', 'a.u.', inferredsd, stdsd, msd, bsd, chiqsd, name='Surface Density ' + name, save=False, Zoom = Zoom)
 
     for i in range(16):
         mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[i::16], inferredr[i::16], stdr[i::16])
@@ -108,7 +116,7 @@ def Auswertung(file_roh, file_sigma, name='', Zoom = None):
 
 
 
-# Auswertung('data_rho.csv', 'data_sigma.csv', name='changes', Zoom = None)
+Auswertung('data_rho.csv', 'data_sigma.csv', 'data_sd.csv', name='changes', Zoom = None)
 
 
 

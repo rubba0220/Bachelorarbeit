@@ -118,7 +118,7 @@ def test_mgvi(s):
     lh = (lh_dfo + lh_sd).amend(fwd)
 
 
-    ''# Now lets run the main inference scheme:
+    # Now lets run the main inference scheme:
     n_vi_iterations = 6
     delta = 1e-4
     n_samples = 10
@@ -170,8 +170,8 @@ def test_mgvi(s):
         exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
     results["rhodm"] = jft.mean_and_std(results["rhosdm"])
-    results["sds"] = tuple(R_sd(s) for s in samples)
-    results["sd"] = jft.mean_and_std(results["sds"])
+    results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
+    results["surfd"] = jft.mean_and_std(results["surfds"])
 
     truthr = [*rho_s(pos_truth), rho_dm(pos_truth)[0]]
     meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
@@ -208,8 +208,8 @@ def test_mgvi(s):
     }
 
     truthsd = [sd_truth]
-    meansd = [results['sd'][0]]
-    stdsd = [results['sd'][1]]
+    meansd = [results['surfd'][0]]
+    stdsd = [results['surfd'][1]]
 
     data_sd = {
         "True Value sd": truthsd,
@@ -218,7 +218,7 @@ def test_mgvi(s):
 
         "Standard Deviation sd": stdsd,
 
-        "Samples sd": results['sds'],
+        "Samples sd": [results['surfds']],
 
         "Abweichung sd": list((jnp.array(truthsd) - jnp.array(meansd))/jnp.array(stdsd))
     }
