@@ -116,7 +116,7 @@ def Auswertung(file_roh, file_sigma, file_sd=None, name='', Zoom = None):
 
 
 
-Auswertung('data_rho.csv', 'data_sigma.csv', 'data_sd.csv', name='changes', Zoom = None)
+Auswertung('data4/data_rho.csv', 'data4/data_sigma.csv', 'data4/data_sd.csv', name='changes', Zoom = None)
 
 
 
