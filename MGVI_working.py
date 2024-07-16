@@ -65,7 +65,7 @@ class ForwardModel_dfo(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        return complicated_function(rs, ss, rdm)[:-1]
+        return jft.Vector(jnp.round(complicated_function(rs, ss, rdm))[:-1])
     
 class ForwardModel_sd(jft.Model):
     def __init__(self):
@@ -80,7 +80,7 @@ class ForwardModel_sd(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        return complicated_function(rs, ss, rdm)[-1]
+        return jft.Vector(complicated_function(rs, ss, rdm)[-1])
 
 # This initialises your forward-model which computes something data-like
 fwd_dfo = ForwardModel_dfo()
@@ -94,10 +94,12 @@ def test_mgvi(s):
     key, subkey = random.split(key)
     pos_truth = jft.random_like(subkey, fwd_dfo.domain) #egal welches fwd, da domain die gleiche
     dfo_truth = fwd_dfo(pos_truth)
+    #print(dfo_truth)
     sd_truth = fwd_sd(pos_truth)
 
-    dfo_truth = jnp.round(dfo_truth,0)
-    dfo_truth = dfo_truth.astype(int)
+    dfo_truth = jnp.round(jnp.array([dfo_truth[i] for i in range(len(dfo_truth))]),0)
+    dfo_truth = jft.Vector(dfo_truth.astype(int))
+    #print(dfo_truth)
 
     noise_cov = lambda x: 0.1 * x
     noise_cov_inv = lambda x: 1. / 0.1 * x
@@ -106,7 +108,7 @@ def test_mgvi(s):
     noise_truth = ((noise_cov(sd_truth)) ** 0.5) * jft.random_like(key, fwd_sd.target)
     sd_truth = sd_truth + noise_truth
     
-    print(sd_truth, noise_truth)
+    #print(sd_truth, noise_truth)
 
     #Visualisierung
     i_s = int((z2-0.)/(z1-0.) * (n-1))
@@ -121,10 +123,10 @@ def test_mgvi(s):
     fig.tight_layout()
 
     lh_dfo = jft.Poissonian(dfo_truth).amend(fwd_dfo)
-    print(lh_dfo.domain)
-    lh_sd = jft.Gaussian(sd_truth, noise_cov_inv).amend(fwd_sd)
+    print(hasattr(lh_dfo.domain, "shape"), lh_dfo.domain, hasattr(lh_dfo.domain, "dtype"))
+    lh_sd = jft.Gaussian(jft.Vector(sd_truth), noise_cov_inv).amend(fwd_sd)
 
-    lh = jft.likelihood.LikelihoodSum(lh_dfo, lh_sd)
+    lh = jft.likelihood.LikelihoodSum(lh_dfo, lh_dfo)
 
 
     ''# Now lets run the main inference scheme:
