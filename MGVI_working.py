@@ -41,6 +41,7 @@ norm = 5000
 n_bins = 20
 
 ''' Forward Models '''
+
 def complicated_function(rho_s, sigma_s, rho_dm):
     params = jnp.column_stack((rho_s, sigma_s))
     rho_dm = rho_dm[0]
@@ -50,9 +51,9 @@ def complicated_function(rho_s, sigma_s, rho_dm):
     integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
     surface_density_calc = util.surface_density(params, uz, z1, n)
 
-    return jnp.append(integral * norm/jnp.sum(integral), surface_density_calc)
+    return integral * norm/jnp.sum(integral), surface_density_calc
 
-class ForwardModel_dfo(jft.Model):
+class ForwardModel(jft.Model):
     def __init__(self):
         self.rho_s = rho_s
         self.sigma_s = sigma_s
@@ -65,26 +66,17 @@ class ForwardModel_dfo(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        return jft.Vector(jnp.round(complicated_function(rs, ss, rdm))[:-1])
-    
-class ForwardModel_sd(jft.Model):
-    def __init__(self):
-        self.rho_s = rho_s
-        self.sigma_s = sigma_s
-        self.rho_dm = rho_dm
-
-        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
-
-    @jit
-    def __call__(self, x):
-        rs = self.rho_s(x)
-        ss = self.sigma_s(x)
-        rdm = self.rho_dm(x)
-        return jft.Vector(complicated_function(rs, ss, rdm)[-1])
+        dfo, sd = complicated_function(rs, ss, rdm)
+        return jft.Vector({'dfo': dfo, 'sd': sd})
 
 # This initialises your forward-model which computes something data-like
-fwd_dfo = ForwardModel_dfo()
-fwd_sd = ForwardModel_sd()
+fwd = ForwardModel()
+
+R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
+
+R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
+
+#jit macht es hier langsamer ??? Schon wieder ...
 
 ''' Testing MGVI '''
 def test_mgvi(s):
@@ -92,41 +84,38 @@ def test_mgvi(s):
     key = random.PRNGKey(seed)
 
     key, subkey = random.split(key)
-    pos_truth = jft.random_like(subkey, fwd_dfo.domain) #egal welches fwd, da domain die gleiche
-    dfo_truth = fwd_dfo(pos_truth)
-    #print(dfo_truth)
-    sd_truth = fwd_sd(pos_truth)
+    pos_truth = jft.random_like(subkey, fwd.domain)
+    dfo_truth = fwd(pos_truth)['dfo']
+    sd_truth = fwd(pos_truth)['sd']
 
-    dfo_truth = jnp.round(jnp.array([dfo_truth[i] for i in range(len(dfo_truth))]),0)
-    dfo_truth = jft.Vector(dfo_truth.astype(int))
-    #print(dfo_truth)
+    dfo_truth = jnp.round(dfo_truth, 0)
+    dfo_truth = dfo_truth.astype(int)
 
-    noise_cov = lambda x: 0.1 * x
-    noise_cov_inv = lambda x: 1. / 0.1 * x
+    noise_cov = lambda x: 3 * x
+    noise_cov_inv = lambda x: 1. / 3 * x
 
     key, subkey = random.split(key)
-    noise_truth = ((noise_cov(sd_truth)) ** 0.5) * jft.random_like(key, fwd_sd.target)
+    noise_truth = ((noise_cov(jft.ones_like((fwd.target)['sd']))) ** 0.5) * jft.random_like(key, (fwd.target)['sd'])
     sd_truth = sd_truth + noise_truth
     
-    #print(sd_truth, noise_truth)
+    print(sd_truth, noise_truth)
 
-    #Visualisierung
-    i_s = int((z2-0.)/(z1-0.) * (n-1))
-    l = int((n-i_s-1)/n_bins)
-    z = jnp.linspace(0., z1, n)[i_s:]
-    z_borders = z[0::l]
-    fig, ax = plt.subplots(figsize=(20,10))
-    ax.set_xlabel('z/pc')
-    ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter(z_borders[:-1], dfo_truth, marker='o')
-    ax.grid()
-    fig.tight_layout()
+    # #Visualisierung
+    # i_s = int((z2-0.)/(z1-0.) * (n-1))
+    # l = int((n-i_s-1)/n_bins)
+    # z = jnp.linspace(0., z1, n)[i_s:]
+    # z_borders = z[0::l]
+    # fig, ax = plt.subplots(figsize=(20,10))
+    # ax.set_xlabel('z/pc')
+    # ax.set_ylabel('$\\nu / \\nu_0 $')
+    # ax.scatter(z_borders[:-1], dfo_truth, marker='o')
+    # ax.grid()
+    # fig.tight_layout()
 
-    lh_dfo = jft.Poissonian(dfo_truth).amend(fwd_dfo)
-    print(hasattr(lh_dfo.domain, "shape"), lh_dfo.domain, hasattr(lh_dfo.domain, "dtype"))
-    lh_sd = jft.Gaussian(jft.Vector(sd_truth), noise_cov_inv).amend(fwd_sd)
+    lh_dfo = jft.Poissonian(dfo_truth).amend(R_dfo)
+    lh_sd = jft.Gaussian(sd_truth, noise_cov_inv).amend(R_sd)
 
-    lh = jft.likelihood.LikelihoodSum(lh_dfo, lh_dfo)
+    lh = (lh_dfo + lh_sd).amend(fwd)
 
 
     ''# Now lets run the main inference scheme:
@@ -181,6 +170,8 @@ def test_mgvi(s):
         exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
     results["rhodm"] = jft.mean_and_std(results["rhosdm"])
+    results["sds"] = tuple(R_sd(s) for s in samples)
+    results["sd"] = jft.mean_and_std(results["sds"])
 
     truthr = [*rho_s(pos_truth), rho_dm(pos_truth)[0]]
     meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
@@ -216,10 +207,29 @@ def test_mgvi(s):
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
+    truthsd = [sd_truth]
+    meansd = [results['sd'][0]]
+    stdsd = [results['sd'][1]]
+
+    data_sd = {
+        "True Value sd": truthsd,
+
+        "Inferred Value sd": meansd,
+
+        "Standard Deviation sd": stdsd,
+
+        "Samples sd": results['sds'],
+
+        "Abweichung sd": list((jnp.array(truthsd) - jnp.array(meansd))/jnp.array(stdsd))
+    }
+
+
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
+    dfsd = pd.DataFrame(data_sd)
     dfr.to_csv(f'data_rho.csv', mode='a', header=False, index=False)
     dfs.to_csv(f'data_sigma.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'data_sd.csv', mode='a', header=False, index=False)
 
 
 
@@ -227,7 +237,7 @@ seed = 4
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (1,), 1, 1000000)
+seeds = random.randint(subkey, (25,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
