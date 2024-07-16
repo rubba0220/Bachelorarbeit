@@ -12,7 +12,7 @@ key = random.PRNGKey(seed)
 
 parameter1 = jft.LogNormalPrior(3.0, 1.0, shape=(1,), name = 'p1') #name = 'p1', dann ist type(lh1.domain)=dict --> domains of ... must support core arithmetic operations; ohne name = 'p1' ist type(lh1.domain)=ShapeDtypeStruct
 
-class ForwardModel1(jft.Model):
+class ForwardModel(jft.Model):
     def __init__(self):
         self.parameter1 = parameter1
 
@@ -24,7 +24,7 @@ class ForwardModel1(jft.Model):
         def complicated_function(a):
             return a
 
-        return complicated_function(p1)
+        return jft.Vector({'out': complicated_function(p1)})
 
 class NoValue:
     pass
@@ -81,21 +81,23 @@ class LikelihoodSum(jft.Likelihood):
             domain=domain, init=init, lsm_tangents_shape=joined_tangents_shape
         )
 
-fwd1 = ForwardModel1()
+fwd = ForwardModel()
 
 noise_cov = lambda x: 0.05 * x
 noise_cov_inv = lambda x: 1. / 0.05 * x
 
 key, subkey = random.split(key)
-pos_truth = jft.random_like(subkey, fwd1.domain)
-fwd1_truth = fwd1(pos_truth)
+pos_truth = jft.random_like(subkey, fwd.domain)
+fwd_truth = fwd(pos_truth)['out']
 
 key, subkey = random.split(key)
-noise1_truth = ((noise_cov(jft.ones_like(fwd1.target))) ** 0.5) * jft.random_like(key, fwd1.target)
+noise_truth = ((noise_cov(jft.ones_like((fwd.target)['out']))) ** 0.5) * jft.random_like(key, (fwd.target)['out'])
+
 data = fwd1_truth + noise1_truth
 
-lh1 = jft.Gaussian(data, noise_cov_inv).amend(fwd1)
-lh2 = jft.Gaussian(data, noise_cov_inv).amend(fwd1)
+R = jft.Model(lambda x: x['out'], domain=fwd.target)
+lh1 = jft.Gaussian(data, noise_cov_inv).amend(R)
+lh2 = jft.Gaussian(data, noise_cov_inv).amend(R)
 print('''''''')
 print(lh1.domain)
 print(isinstance(lh1.domain, jft.Vector))
@@ -103,8 +105,7 @@ print(hasattr(lh1.domain, "shape") and hasattr(lh1.domain, "dtype"))
 print(jft.has_arithmetics(lh1.domain))
 print('''''''')
 
-lh = LikelihoodSum(lh1, lh2)
-#lh = lh1 + lh2
+lh = (lh1+lh2).amend(fwd)
 
 
 
