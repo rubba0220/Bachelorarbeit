@@ -26,9 +26,9 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 0.
-z1 = 1800.
-n = 1801
+z2 = 300.
+z1 = 1600.
+n = 1601
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
