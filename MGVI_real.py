@@ -26,7 +26,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 500.
+z2 = 300.
 z1 = 1600.
 n = 1601
 
