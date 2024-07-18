@@ -26,22 +26,25 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 300.
+z2 = 750.
 z1 = 1600.
-n = 1601
 
 poly = np.loadtxt(f'real data/poly_58.txt')
+
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
+
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
 z2 = bins[i2]
 z1 = bins[i1]
+n = int(z1)+1
+
 bins = bins[i2:i1+1]
+n_bins = int(len(bins)-1)
 
 data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
 data = np.flip(data)[i2:i1] + data[i2:i1]
 norm = np.sum(data)
-n_bins = int(len(bins)-1)
 
 ''' Forward Model '''
 class ForwardModel(jft.Model):
@@ -135,20 +138,31 @@ results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
 results["surfd"] = jft.mean_and_std(results["surfds"])
 
 ''' Save Results '''
-meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
-stdr = [results[f'rho{k+1}'][1] for k in range(15)] + [results['rhodm'][1]]
+meanr = [results[f'rho{k+1}'][0] for k in range(15)] 
+stdr = [results[f'rho{k+1}'][1] for k in range(15)] 
 
 data_rho = {
+    "Run": [f'rho_{k+1} z2:{z2} z1:{z1} norm:sum vel:poly' for k in range(15)],
     "Inferred Value rho": meanr,
     "Standard Deviation rho": stdr,
-    "Samples rho": [results[f'rhos{k+1}'] for k in range(15)] + [results['rhosdm']]
+    "Samples rho": [results[f'rhos{k+1}'] for k in range(15)]
 }
 
+meanrd = [results['rhodm'][0]]
+stdrd = [results['rhodm'][1]]
+
+data_rd = { 
+    "Run": [f'rho_dm z2:{z2} z1:{z1} norm:sum vel:poly'],
+    "Inferred Value rho": meanrd,
+    "Standard Deviation rho": stdrd,
+    "Samples rho": [results['rhosdm']]
+}
 
 means = [results[f'sigma{k+1}'][0] for k in range(15)]
 stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
 data_sigma = {
+    "Run": [f'sigma_{k+1} z2:{z2} z1:{z1} norm:sum vel:poly' for k in range(15)],
     "Inferred Value sigma": means,
     "Standard Deviation sigma": stds,
     "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
@@ -159,6 +173,7 @@ meansd = [results['surfd'][0]]
 stdsd = [results['surfd'][1]]
 
 data_sd = {
+    "Run": ['surfdens z2:{z2} z1:{z1} norm:sum vel:poly'],
     "Inferred Value sd": meansd,
     "Standard Deviation sd": stdsd,
     "Samples sd": [results['surfds']],
@@ -166,9 +181,16 @@ data_sd = {
 
 
 dfr = pd.DataFrame(data_rho)
+dfr.set_index('Run', inplace=True)
+dfrd = pd.DataFrame(data_rd)
+dfrd.set_index('Run', inplace=True)
 dfs = pd.DataFrame(data_sigma)
+dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
-dfr.to_csv(f'real data2/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
-dfs.to_csv(f'real data2/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
-dfsd.to_csv(f'real data2/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False, index=False)
+dfsd.set_index('Run', inplace=True)
+
+dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
