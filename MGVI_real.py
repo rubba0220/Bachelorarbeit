@@ -24,10 +24,11 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 5
-am_max = 6
+am_min = 6
+am_max = 7
 z2 = 600.
-z1 = 1600.
+z1 = 1400.
+summation = True
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 
@@ -44,7 +45,6 @@ n_bins = int(len(bins)-1)
 
 data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
 data = np.flip(data)[i2:i1] + data[i2:i1]
-summation = False
 
 ''' Forward Model '''
 if summation:
@@ -224,8 +224,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-# dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-# dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-# dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-# dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
