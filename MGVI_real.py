@@ -27,12 +27,12 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 am_min = 6
 am_max = 7
 z2 = 600.
-z1 = 1400.
+z1 = 1800.
 summation = True
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 
-bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
+bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}_o.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -43,7 +43,7 @@ n = int(z1)+1
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
-data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
+data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}_o.txt', dtype='int')
 data = np.flip(data)[i2:i1] + data[i2:i1]
 
 ''' Forward Model '''
@@ -224,8 +224,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
+dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
+dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
+dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
 
