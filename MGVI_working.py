@@ -36,9 +36,10 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 z2 = 0.
 z1 = 3000.
 n = 3001
+# hier noch Gedanken machen ob bis wohin ausreichend ist !!!
 poly = (0,0)
 norm = 5000
-n_bins = 20
+n_bins = 30
 
 ''' Forward Models '''
 
@@ -71,9 +72,7 @@ class ForwardModel(jft.Model):
 
 # This initialises your forward-model which computes something data-like
 fwd = ForwardModel()
-
 R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
-
 R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 
 #jit macht es hier langsamer ??? Schon wieder ...
@@ -88,8 +87,10 @@ def test_mgvi(s):
     dfo_truth = fwd(pos_truth)['dfo']
     sd_truth = fwd(pos_truth)['sd']
 
+    key, subkey = random.split(key)
     dfo_truth = jnp.round(dfo_truth, 0)
     dfo_truth = dfo_truth.astype(int)
+    dfo_truth = jax.random.poisson(subkey, dfo_truth)
 
     noise_cov = lambda x: 3 * x
     noise_cov_inv = lambda x: 1. / 3 * x
@@ -100,17 +101,18 @@ def test_mgvi(s):
     
     print(sd_truth, noise_truth)
 
-    # #Visualisierung
-    # i_s = int((z2-0.)/(z1-0.) * (n-1))
-    # l = int((n-i_s-1)/n_bins)
-    # z = jnp.linspace(0., z1, n)[i_s:]
-    # z_borders = z[0::l]
-    # fig, ax = plt.subplots(figsize=(20,10))
-    # ax.set_xlabel('z/pc')
-    # ax.set_ylabel('$\\nu / \\nu_0 $')
-    # ax.scatter(z_borders[:-1], dfo_truth, marker='o')
-    # ax.grid()
-    # fig.tight_layout()
+    #Visualisierung
+    i_s = int((z2-0.)/(z1-0.) * (n-1))
+    l = int((n-i_s-1)/n_bins)
+    z = jnp.linspace(0., z1, n)[i_s:]
+    z_borders = z[0::l]
+    fig, ax = plt.subplots(figsize=(20,10))
+    ax.set_xlabel('z/pc')
+    ax.set_ylabel('$\\nu / \\nu_0 $')
+    ax.scatter(z_borders[:-1], dfo_truth, marker='o')
+    ax.grid()
+    fig.tight_layout()
+    plt.show()
 
     lh_dfo = jft.Poissonian(dfo_truth).amend(R_dfo)
     lh_sd = jft.Gaussian(sd_truth, noise_cov_inv).amend(R_sd)
@@ -227,17 +229,17 @@ def test_mgvi(s):
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
     dfsd = pd.DataFrame(data_sd)
-    dfr.to_csv(f'data_rho.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data_sigma.csv', mode='a', header=False, index=False)
-    dfsd.to_csv(f'data_sd.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data4/data_rho_morewithnoise.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data4/data_sigma_morewithnoise.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'data4/data_sd_morewithnoise.csv', mode='a', header=False, index=False)
 
 
 
-seed = 4
+seed = 42
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (25,), 1, 1000000)
+seeds = random.randint(subkey, (30,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
