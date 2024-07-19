@@ -26,8 +26,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 6
 am_max = 7
-z2 = 600.
-z1 = 1800.
+z2 = 1000.
+z1 = 1500.
 summation = True
 
 poly = np.loadtxt(f'real data/poly_58.txt')
