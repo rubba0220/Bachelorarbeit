@@ -26,7 +26,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 750.
+z2 = 600.
 z1 = 1600.
 
 poly = np.loadtxt(f'real data/poly_58.txt')
@@ -44,35 +44,70 @@ n_bins = int(len(bins)-1)
 
 data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
 data = np.flip(data)[i2:i1] + data[i2:i1]
-norm = np.sum(data)
+summation = False
 
 ''' Forward Model '''
-class ForwardModel(jft.Model):
-    def __init__(self):
-        self.rho_s = rho_s
-        self.sigma_s = sigma_s
-        self.rho_dm = rho_dm
+if summation:
+    norm = jnp.sum(data)
+    string = f'z2:{z2} z1:{z1} norm:sum vel:poly'
 
-        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
+    class ForwardModel(jft.Model):
+        def __init__(self):
+            self.rho_s = rho_s
+            self.sigma_s = sigma_s
+            self.rho_dm = rho_dm
 
-    @jit
-    def __call__(self, x):
-        rs = self.rho_s(x)
-        ss = self.sigma_s(x)
-        rdm = self.rho_dm(x)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
 
-        def complicated_function(rho_s, sigma_s, rho_dm):
-            params = jnp.column_stack((rho_s, sigma_s))
-            rho_dm = rho_dm[0]
+        @jit
+        def __call__(self, x):
+            rs = self.rho_s(x)
+            ss = self.sigma_s(x)
+            rdm = self.rho_dm(x)
 
-            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
-            vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
-            integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
-            surface_density_calc = util.surface_density(params, uz, z1, n)
+            def complicated_function(rho_s, sigma_s, rho_dm):
+                params = jnp.column_stack((rho_s, sigma_s))
+                rho_dm = rho_dm[0]
 
-            return integral * norm/jnp.sum(integral), surface_density_calc
-        dfo, sd = complicated_function(rs, ss, rdm)
-        return jft.Vector({'dfo': dfo, 'sd': sd})
+                uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+                vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
+                integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
+                surface_density_calc = util.surface_density(params, uz, z1, n)
+
+                return integral * norm/jnp.sum(integral), surface_density_calc
+            dfo, sd = complicated_function(rs, ss, rdm)
+            return jft.Vector({'dfo': dfo, 'sd': sd})
+    
+else:
+    norm = data[0]
+    string = f'z2:{z2} z1:{z1} norm:first vel:poly'
+    class ForwardModel(jft.Model):
+        def __init__(self):
+            self.rho_s = rho_s
+            self.sigma_s = sigma_s
+            self.rho_dm = rho_dm
+
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init)
+
+        @jit
+        def __call__(self, x):
+            rs = self.rho_s(x)
+            ss = self.sigma_s(x)
+            rdm = self.rho_dm(x)
+
+            def complicated_function(rho_s, sigma_s, rho_dm):
+                params = jnp.column_stack((rho_s, sigma_s))
+                rho_dm = rho_dm[0]
+
+                uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+                vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
+                integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
+                surface_density_calc = util.surface_density(params, uz, z1, n)
+
+                return integral * norm/integral[0], surface_density_calc
+            dfo, sd = complicated_function(rs, ss, rdm)
+            return jft.Vector({'dfo': dfo, 'sd': sd})
+
 
 fwd = ForwardModel()
 R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
@@ -142,7 +177,7 @@ meanr = [results[f'rho{k+1}'][0] for k in range(15)]
 stdr = [results[f'rho{k+1}'][1] for k in range(15)] 
 
 data_rho = {
-    "Run": [f'rho_{k+1} z2:{z2} z1:{z1} norm:sum vel:poly' for k in range(15)],
+    "Run": [f'rho_{k+1} ' + string for k in range(15)],
     "Inferred Value rho": meanr,
     "Standard Deviation rho": stdr,
     "Samples rho": [results[f'rhos{k+1}'] for k in range(15)]
@@ -152,7 +187,7 @@ meanrd = [results['rhodm'][0]]
 stdrd = [results['rhodm'][1]]
 
 data_rd = { 
-    "Run": [f'rho_dm z2:{z2} z1:{z1} norm:sum vel:poly'],
+    "Run": [f'rho_dm ' + string],
     "Inferred Value rho": meanrd,
     "Standard Deviation rho": stdrd,
     "Samples rho": [results['rhosdm']]
@@ -162,7 +197,7 @@ means = [results[f'sigma{k+1}'][0] for k in range(15)]
 stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
 data_sigma = {
-    "Run": [f'sigma_{k+1} z2:{z2} z1:{z1} norm:sum vel:poly' for k in range(15)],
+    "Run": [f'sigma_{k+1} ' + string for k in range(15)],
     "Inferred Value sigma": means,
     "Standard Deviation sigma": stds,
     "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
@@ -173,7 +208,7 @@ meansd = [results['surfd'][0]]
 stdsd = [results['surfd'][1]]
 
 data_sd = {
-    "Run": ['surfdens z2:{z2} z1:{z1} norm:sum vel:poly'],
+    "Run": ['surfdens ' + string],
     "Inferred Value sd": meansd,
     "Standard Deviation sd": stdsd,
     "Samples sd": [results['surfds']],
@@ -189,8 +224,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
