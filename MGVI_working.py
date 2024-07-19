@@ -39,7 +39,7 @@ n = 1501
 # hier noch Gedanken machen ob bis wohin ausreichend ist !!!
 poly = (0,0)
 norm = 50000
-n_bins = 150
+n_bins = 300
 
 ''' Forward Models '''
 
@@ -229,9 +229,9 @@ def test_mgvi(s):
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
     dfsd = pd.DataFrame(data_sd)
-    dfr.to_csv(f'data4/data_rho_morepoints.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data4/data_sigma_morepoints.csv', mode='a', header=False, index=False)
-    dfsd.to_csv(f'data4/data_sd_morepoints.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data4/data_rho_morepoints2.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data4/data_sigma_morepoints2.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'data4/data_sd_morepoints2.csv', mode='a', header=False, index=False)
 
 
 
