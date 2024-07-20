@@ -44311,3 +44311,153 @@ rho_dm                :: reduced χ²:     1.3±   0.071, avg:     -1.1±   0.03
 rho_s                 :: reduced χ²:     7.6±    0.99, avg:     -2.1±    0.13, #dof:     15
 sigma_s               :: reduced χ²:     4.6±    0.89, avg:    +0.57±    0.26, #dof:     15
 
+
+Post OptimizeVI: Iteration -001 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 2, 2, 3, 3, 3, 2, 3, 3)
+#(KL minimization steps) 24
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.9±    0.54, '
+                                                'avg:   -0.032±    0.25, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:     0.6±    '
+                                                 '0.58, avg:    +0.38±    '
+                                                 '0.68, #dof:      1'},
+                         'lh_right': 'reduced χ²:     0.6±    0.58, avg:    '
+                                     '+0.38±    0.68, #dof:      1'},
+             'lh_right': 'reduced χ²:     0.6±    0.58, avg:    +0.38±    '
+                         '0.68, #dof:      1'},
+ 'lh_right': 'reduced χ²:     0.6±    0.58, avg:    +0.38±    0.68, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:     0.6±    0.58, avg:    +0.38±    0.68, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.1±   0.089, avg:     -1.7±   0.025, #dof:      1
+rho_s                 :: reduced χ²:     1.9±    0.59, avg:    -0.78±    0.23, #dof:     15
+sigma_s               :: reduced χ²:     1.7±    0.46, avg:    +0.13±    0.26, #dof:     15
+
+
+Post OptimizeVI: Iteration 0000 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 23
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.7±    0.35, '
+                                                'avg:   -0.042±   0.089, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:    0.36±    '
+                                                 '0.55, avg:    +0.22±    '
+                                                 '0.56, #dof:      1'},
+                         'lh_right': 'reduced χ²:    0.36±    0.55, avg:    '
+                                     '+0.22±    0.56, #dof:      1'},
+             'lh_right': 'reduced χ²:    0.36±    0.55, avg:    +0.22±    '
+                         '0.56, #dof:      1'},
+ 'lh_right': 'reduced χ²:    0.36±    0.55, avg:    +0.22±    0.56, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:    0.36±    0.55, avg:    +0.22±    0.56, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.2±    0.11, avg:     -1.8±    0.03, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.28, avg:    -0.79±    0.24, #dof:     15
+sigma_s               :: reduced χ²:     1.6±    0.45, avg:   +0.077±     0.4, #dof:     15
+
+
+Post OptimizeVI: Iteration 0001 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 2, 3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 23
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.7±    0.62, '
+                                                'avg:   -0.046±   0.074, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:   0.067±   '
+                                                 '0.079, avg:    +0.15±    '
+                                                 '0.21, #dof:      1'},
+                         'lh_right': 'reduced χ²:   0.067±   0.079, avg:    '
+                                     '+0.15±    0.21, #dof:      1'},
+             'lh_right': 'reduced χ²:   0.067±   0.079, avg:    +0.15±    '
+                         '0.21, #dof:      1'},
+ 'lh_right': 'reduced χ²:   0.067±   0.079, avg:    +0.15±    0.21, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:   0.067±   0.079, avg:    +0.15±    0.21, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.2±    0.28, avg:     -1.8±   0.078, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.51, avg:    -0.77±    0.25, #dof:     15
+sigma_s               :: reduced χ²:     1.6±    0.46, avg:    +0.08±    0.35, #dof:     15
+
+
+Post OptimizeVI: Iteration 0002 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 10
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.8±    0.59, '
+                                                'avg:    -0.05±    0.12, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:    0.23±    '
+                                                 '0.27, avg:    +0.15±    '
+                                                 '0.46, #dof:      1'},
+                         'lh_right': 'reduced χ²:    0.23±    0.27, avg:    '
+                                     '+0.15±    0.46, #dof:      1'},
+             'lh_right': 'reduced χ²:    0.23±    0.27, avg:    +0.15±    '
+                         '0.46, #dof:      1'},
+ 'lh_right': 'reduced χ²:    0.23±    0.27, avg:    +0.15±    0.46, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:    0.23±    0.27, avg:    +0.15±    0.46, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.2±     0.3, avg:     -1.8±   0.081, #dof:      1
+rho_s                 :: reduced χ²:     2.0±    0.47, avg:    -0.77±    0.19, #dof:     15
+sigma_s               :: reduced χ²:     1.3±    0.48, avg:   +0.073±    0.33, #dof:     15
+
+
+Post OptimizeVI: Iteration 0003 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 18
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.7±    0.67, '
+                                                'avg:   -0.047±   0.092, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:    0.11±    '
+                                                 '0.18, avg:    +0.16±     '
+                                                 '0.3, #dof:      1'},
+                         'lh_right': 'reduced χ²:    0.11±    0.18, avg:    '
+                                     '+0.16±     0.3, #dof:      1'},
+             'lh_right': 'reduced χ²:    0.11±    0.18, avg:    +0.16±     '
+                         '0.3, #dof:      1'},
+ 'lh_right': 'reduced χ²:    0.11±    0.18, avg:    +0.16±     0.3, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:    0.11±    0.18, avg:    +0.16±     0.3, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.2±    0.22, avg:     -1.8±   0.062, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.66, avg:    -0.77±    0.24, #dof:     15
+sigma_s               :: reduced χ²:     1.5±    0.43, avg:   +0.077±     0.2, #dof:     15
+
+
+Post OptimizeVI: Iteration 0004 ⛰:-1.6497e+05
+#(Nonlinear Sampling Steps) (3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3)
+#(KL minimization steps) 8
+Likelihood residual(s):
+lh_left               ::
+{'lh_left': {'lh_left': {'lh_left': {'lh_left': 'reduced χ²:     4.7±    0.32, '
+                                                'avg:   -0.043±     0.1, '
+                                                '#dof:     15',
+                                     'lh_right': 'reduced χ²:   0.074±   '
+                                                 '0.085, avg:    +0.18±     '
+                                                 '0.2, #dof:      1'},
+                         'lh_right': 'reduced χ²:   0.074±   0.085, avg:    '
+                                     '+0.18±     0.2, #dof:      1'},
+             'lh_right': 'reduced χ²:   0.074±   0.085, avg:    +0.18±     '
+                         '0.2, #dof:      1'},
+ 'lh_right': 'reduced χ²:   0.074±   0.085, avg:    +0.18±     0.2, #dof:      '
+             '1'}
+lh_right              :: reduced χ²:   0.074±   0.085, avg:    +0.18±     0.2, #dof:      1
+
+Prior residual(s):
+rho_dm                :: reduced χ²:     3.2±    0.11, avg:     -1.8±   0.032, #dof:      1
+rho_s                 :: reduced χ²:     2.1±    0.38, avg:    -0.79±    0.12, #dof:     15
+sigma_s               :: reduced χ²:     1.4±    0.33, avg:   +0.084±    0.27, #dof:     15
+
