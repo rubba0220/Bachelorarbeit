@@ -142,8 +142,8 @@ def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
 #     sd = jnp.array([test(params, u) for u in uz])
 #     return sd
 
-@partial(jit, static_argnames=['n', 'z1'])
-def surface_density(params, uz, z1, n):
+@jit
+def surface_density(params, uz, zs):
 
     def term(params, u):
         return jnp.sum(params[:, 0] * jnp.exp(-u[0] / params[:, 1]**2))
@@ -153,4 +153,26 @@ def surface_density(params, uz, z1, n):
         return carry, result
 
     _, sd = lax.scan(scan_fn, None, uz)
-    return 2*jnp.sum(sd*(z1-z0)/(n-1))
+    return 2*jnp.sum(sd[:-1]*(zs[1:]-zs[:-1]))
+
+@partial(jit, static_argnames=['n3'])
+def Solver(rho_dm, params, z1, z3, u3, n3):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = dif.ODETerm(vector_field)
+    solver = dif.Dopri5()
+    saveat = dif.SaveAt(ts=jnp.linspace(z1, z3, n3)[1:])
+    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = dif.DirectAdjoint()
+
+    sol = dif.diffeqsolve(  term, solver, 
+                            t0=z1, t1=z3, dt0=None, y0=u3, args=(rho_dm, params), 
+                            saveat=saveat,
+                            adjoint=adjoint,
+                            stepsize_controller=stepsize_controller) 
+                            #throw=False, max_steps=None
+
+    zs_ = sol.ts
+    uz_ = sol.ys
+
+    return uz_, zs_

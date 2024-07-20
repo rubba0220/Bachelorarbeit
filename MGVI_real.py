@@ -24,26 +24,28 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 6
-am_max = 7
-z2 = 1000.
-z1 = 1500.
-summation = True
+am_min = 5
+am_max = 6
+z2 = 540.
+z1 = 1600.
+z3 = 5000.
+summation = False
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 
-bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}_o.txt')
+bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
 z2 = bins[i2]
 z1 = bins[i1]
 n = int(z1)+1
+n3 = int(z3-z1)+1
 
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
-data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}_o.txt', dtype='int')
+data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
 data = np.flip(data)[i2:i1] + data[i2:i1]
 
 ''' Forward Model '''
@@ -70,9 +72,11 @@ if summation:
                 rho_dm = rho_dm[0]
 
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+                uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
                 vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
                 integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
-                surface_density_calc = util.surface_density(params, uz, z1, n)
+                surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
+
 
                 return integral * norm/jnp.sum(integral), surface_density_calc
             dfo, sd = complicated_function(rs, ss, rdm)
@@ -100,9 +104,10 @@ else:
                 rho_dm = rho_dm[0]
 
                 uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+                uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
                 vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly)
                 integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
-                surface_density_calc = util.surface_density(params, uz, z1, n)
+                surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
 
                 return integral * norm/integral[0], surface_density_calc
             dfo, sd = complicated_function(rs, ss, rdm)
@@ -224,8 +229,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data3/rho_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
-dfrd.to_csv(f'real data3/rd_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
-dfs.to_csv(f'real data3/sigma_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
-dfsd.to_csv(f'real data3/sd_{am_min:.0f}{am_max:.0f}_o.csv', mode='a', header=False)
+dfr.to_csv(f'real data4/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data4/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data4/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data4/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
