@@ -24,12 +24,12 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 5
-am_max = 6
-z2 = 540.
-z1 = 1600.
+am_min = 7
+am_max = 8
+z2 = 180.
+z1 = 1200.
 z3 = 5000.
-summation = False
+summation = True
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 
