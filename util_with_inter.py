@@ -163,3 +163,25 @@ def surface_density(params, uz, z1, n):
 
     _, sd = lax.scan(scan_fn, None, uz)
     return 2*jnp.sum(sd*(z1-z0)/(n-1))
+
+@jit
+def Solver(rho_dm, params, points):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = dif.ODETerm(vector_field)
+    solver = dif.Dopri5()
+    saveat = dif.SaveAt(ts=points)
+    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = dif.DirectAdjoint()
+
+    sol = dif.diffeqsolve(  term, solver, 
+                            t0=z0, t1=points[-1], dt0=None, y0=u0, args=(rho_dm, params), 
+                            saveat=saveat,
+                            adjoint=adjoint,
+                            stepsize_controller=stepsize_controller) 
+                            #throw=False, max_steps=None
+
+    zs = sol.ts
+    uz = sol.ys
+
+    return uz, zs
