@@ -30,6 +30,7 @@ z2 = 180.
 z1 = 1200.
 z3 = 5000.
 summation = True
+interval = 'neg'
 
 poly = np.loadtxt(f'real data/poly_58.txt')
 
@@ -46,12 +47,17 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
-data = np.flip(data)[i2:i1] + data[i2:i1]
+if interval == 'pos':
+    data = data[i2:i1] 
+elif interval == 'neg':
+    data = np.flip(data)[i2:i1]
+elif interval == 'both':
+    data = np.flip(data)[i2:i1] + data[i2:i1]
 
 ''' Forward Model '''
 if summation:
     norm = jnp.sum(data)
-    string = f'z2:{z2} z1:{z1} norm:sum vel:poly'
+    string = f'z2:{z2} z1:{z1} norm:sum vel:poly data:{interval}'
 
     class ForwardModel(jft.Model):
         def __init__(self):
@@ -84,7 +90,7 @@ if summation:
     
 else:
     norm = data[0]
-    string = f'z2:{z2} z1:{z1} norm:first vel:poly'
+    string = f'z2:{z2} z1:{z1} norm:first vel:poly data:{interval}'
     class ForwardModel(jft.Model):
         def __init__(self):
             self.rho_s = rho_s
@@ -229,8 +235,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data4/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data4/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data4/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data4/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'real data pos_neg/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data pos_neg/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data pos_neg/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data pos_neg/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
