@@ -3,13 +3,12 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import jit, random
-from matplotlib import pyplot as plt
 import nifty8.re as jft
 import pandas as pd
 import util
 import importlib
-importlib.reload(util)
 import time
+importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
 
