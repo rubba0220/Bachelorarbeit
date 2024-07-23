@@ -99,6 +99,42 @@ def Auswertung(file_roh, file_sigma, file_sd=None, name='', Zoom = None):
         ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
         residuenplot(params[:,1][i], 'True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
 
+def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', Zoom = None):
+    data_roh = pd.read_csv(file_roh, header=None)
+    data_sigma = pd.read_csv(file_sigma, header=None)
+
+    truthr = jnp.array(data_roh.iloc[:,0])
+    inferredr = jnp.array(data_roh.iloc[:,1])
+    stdr = jnp.array(data_roh.iloc[:,2])
+    
+    truths = jnp.array(data_sigma.iloc[:,0])
+    inferreds = jnp.array(data_sigma.iloc[:,1])
+    stds = jnp.array(data_sigma.iloc[:,2])
+
+    if file_sd != None:
+        data_sd = pd.read_csv(file_sd, header=None)
+        truthsd = jnp.array(data_sd.iloc[:,0])
+        inferredsd = jnp.array(data_sd.iloc[:,1])
+        stdsd = jnp.array(data_sd.iloc[:,2])
+        msd, emsd, bsd, ebsd, chiqsd, ndofsd = linreg(truthsd, inferredsd, stdsd)
+        residuenplot(0, 'True Value', 'a.u.', truthsd, 0, 'Inferred Value', 'a.u.', inferredsd, stdsd, msd, bsd, chiqsd, name='Surface Density ' + name, save=False, Zoom = Zoom)
+
+    if file_rd != None:
+        data_rd = pd.read_csv(file_rd, header=None)
+        truthrd = jnp.array(data_rd.iloc[:,0])
+        inferredrd = jnp.array(data_rd.iloc[:,1])
+        stdrd = jnp.array(data_rd.iloc[:,2])
+        mrd, emrd, brd, ebrd, chiqrd, ndofrd = linreg(truthrd, inferredrd, stdrd)
+        residuenplot(rho_dm, 'True Value', 'a.u.', truthrd, 0, 'Inferred Value', 'a.u.', inferredrd, stdrd, mrd, brd, chiqrd, name='Rho_dm ' + name, save=False, Zoom = Zoom)
+
+    for i in range(15):
+        mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[i::15], inferredr[i::15], stdr[i::15])
+        residuenplot(jnp.append(params[:,0],rho_dm)[i], 'True Value', 'a.u.', truthr[i::15], 0, 'Inferred Value', 'a.u.', inferredr[i::15], stdr[i::15], mr, br, chiqr, name=f'Rho_{i+1} ' + name, save=False, Zoom = Zoom)
+
+    for i in range(15):
+        ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
+        residuenplot(params[:,1][i], 'True Value', 'a.u.', truths[i::15], 0, 'Inferred Value', 'a.u.', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=f'Sigma_{i+1} ' + name, save=False)
+
 # Auswertung('data2/data_rho.csv', 'data2/data_sigma.csv', name='changes', Zoom = None)
 
 # Auswertung('data2/data_rho_eigen_uniform.csv', 'data2/data_sigma_eigen_uniform.csv', name='changes', Zoom = None)
@@ -119,8 +155,11 @@ def Auswertung(file_roh, file_sigma, file_sd=None, name='', Zoom = None):
 # Auswertung('data4/data_rho.csv', 'data4/data_sigma.csv', 'data4/data_sd.csv', name='changes', Zoom = None)
 # Auswertung('data4/data_rho_morewithnoise.csv', 'data4/data_sigma_morewithnoise.csv', 'data4/data_sd_morewithnoise.csv', name='changes', Zoom = None)
 # Auswertung('data4/data_rho_morepoints.csv', 'data4/data_sigma_morepoints.csv', 'data4/data_sd_morepoints.csv', name='changes', Zoom = None)
-Auswertung('data4/data_rho_morepoints2.csv', 'data4/data_sigma_morepoints2.csv', 'data4/data_sd_morepoints2.csv', name='changes', Zoom = None)
+# Auswertung('data4/data_rho_morepoints2.csv', 'data4/data_sigma_morepoints2.csv', 'data4/data_sd_morepoints2.csv', name='changes', Zoom = None)
 
+# Auswertung2('finale tests/rhos_vdfo_uniform.csv', 'finale tests/sigma_vdfo_uniform.csv', 'finale tests/rhodm_vdfo_uniform.csv', name='changes', Zoom = None)
+# Auswertung2('finale tests/rhos_vdfo.csv', 'finale tests/sigma_vdfo.csv', 'finale tests/rhodm_vdfo.csv', name='changes', Zoom = None)
+Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='changes', Zoom = None)
 
 # data_roh = pd.read_csv('data3/data_rho_more.csv', header=None)
 

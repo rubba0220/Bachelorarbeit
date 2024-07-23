@@ -28,8 +28,11 @@ sigmas = jnp.array([4., 7., 9., 40., 20., 7.5, 10.5, 14., 18., 18.5, 18.5, 20., 
 erhos = jnp.array([ 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) * rhos
 esigmas = jnp.array([1., 1., 1., 1., 2., 2., 2., 2., 2., 2., 2., 5., 5., 5., 10.])
 
-rho_s = jft.UniformPrior(rhos-erhos, rhos+erhos, name="rho_s", shape=(15,))
-sigma_s = jft.UniformPrior(sigmas-esigmas, sigmas+esigmas, name="sigma_s", shape=(15,))
+# rho_s = jft.UniformPrior(rhos-erhos, rhos+erhos, name="rho_s", shape=(15,))
+# sigma_s = jft.UniformPrior(sigmas-esigmas, sigmas+esigmas, name="sigma_s", shape=(15,))
+# rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
+rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
+sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
@@ -168,13 +171,9 @@ def test_mgvi(s):
 
     data_sigma = {
         "True Value sigma": truths,
-
         "Inferred Value sigma": means,
-
         "Standard Deviation sigma": stds,
-
         "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
-
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 

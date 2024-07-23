@@ -25,20 +25,22 @@ plt.rcParams['lines.linewidth'] = 2.0
 ''' Massenmodell '''
 rhos = jnp.array([0.021, 0.016, 0.012, 0.0009, 0.0006, 0.0031, 0.0015, 0.0020, 0.0022, 0.007, 0.0135, 0.006, 0.002, 0.0035, 0.0001])
 sigmas = jnp.array([4., 7., 9., 40., 20., 7.5, 10.5, 14., 18., 18.5, 18.5, 20., 20., 37., 100.])
-erhos = jnp.array([0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) * rhos
+erhos = jnp.array([ 0.5, 0.5, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) * rhos
 esigmas = jnp.array([1., 1., 1., 1., 2., 2., 2., 2., 2., 2., 2., 5., 5., 5., 10.])
 
 rho_s = jft.LogNormalPrior(rhos, erhos, name="rho_s", shape=(15,))
 sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
-rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
+rho_dm = jft.UniformPrior(0., 0.05, name="rho_dm", shape=(1,))
 
 ''' Domain '''
 z2 = 200.
 z1 = 2000.
+z3 = 8000.
 
 poly = (0,0)
 
 n = int(z1)+1
+n3 = int(z3-z1)+1
 
 n_bins = 25
 norm = 40000
@@ -49,10 +51,12 @@ def complicated_function(rho_s, sigma_s, rho_dm):
     rho_dm = rho_dm[0]
 
     uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+    uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
     vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, mock=True)
     integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
+    surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
 
-    return integral * norm/jnp.sum(integral)
+    return integral * norm/jnp.sum(integral), surface_density_calc
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -68,10 +72,12 @@ class ForwardModel(jft.Model):
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
 
-        dfo = complicated_function(rs, ss, rdm)
-        return dfo
+        dfo, sd = complicated_function(rs, ss, rdm)
+        return jft.Vector({'dfo': dfo, 'sd': sd})
 
 fwd = ForwardModel()
+R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
+R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 
 def test_mgvi(s):
     seed = s
@@ -79,12 +85,22 @@ def test_mgvi(s):
 
     key, subkey = random.split(key)
     pos_truth = jft.random_like(subkey, fwd.domain)
-    fwd_truth = fwd(pos_truth)
-    
+    dfo_truth = fwd(pos_truth)['dfo']
+    sd_truth = fwd(pos_truth)['sd']
+
     key, subkey = random.split(key)
-    fwd_truth = jnp.round(fwd_truth, 0)
-    fwd_truth = fwd_truth.astype(int)
-    fwd_truth = jax.random.poisson(subkey, fwd_truth)
+    dfo_truth = jnp.round(dfo_truth, 0)
+    dfo_truth = dfo_truth.astype(int)
+    dfo_truth = jax.random.poisson(subkey, dfo_truth)
+
+    noise_cov = lambda x: 16. * x
+    noise_cov_inv = lambda x: 1. / 16. * x
+
+    key, subkey = random.split(key)
+    noise_truth = ((noise_cov(jft.ones_like((fwd.target)['sd']))) ** 0.5) * jft.random_like(key, (fwd.target)['sd'])
+    sd_truth = sd_truth + noise_truth
+    
+    print('Surface density truth: ' sd_truth, noise_truth)
 
     #Visualisierung
     i_s = int((z2-0.)/(z1-0.) * (n-1))
@@ -99,7 +115,10 @@ def test_mgvi(s):
     fig.tight_layout()
     plt.show()
 
-    lh = jft.Poissonian(fwd_truth).amend(fwd)
+    lh_dfo = jft.Poissonian(dfo_truth).amend(R_dfo)
+    lh_sd = jft.Gaussian(sd_truth, noise_cov_inv).amend(R_sd)
+
+    lh = (lh_dfo + lh_sd).amend(fwd)
 
     n_vi_iterations = 6
     delta = 1e-4
@@ -181,14 +200,27 @@ def test_mgvi(s):
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
+    truthsd = [sd_truth]
+    meansd = [results['surfd'][0]]
+    stdsd = [results['surfd'][1]]
+
+    data_sd = {
+        "True Value sd": truthsd,
+        "Inferred Value sd": meansd,
+        "Standard Deviation sd": stdsd,
+        "Samples sd": [results['surfds']],
+        "Abweichung sd": list((jnp.array(truthsd) - jnp.array(meansd))/jnp.array(stdsd))
+    }
+
     dfr = pd.DataFrame(data_rho)
     dfrd = pd.DataFrame(data_rd)
     dfs = pd.DataFrame(data_sigma)
+    dfsd = pd.DataFrame(data_sd)
 
     dfr.to_csv(f'finale tests/rhos_bin.csv', mode='a', header=False, index=False)
     dfrd.to_csv(f'finale tests/rhodm_bin.csv', mode='a', header=False, index=False)
     dfs.to_csv(f'finale tests/sigma_bin.csv', mode='a', header=False, index=False)
-
+    dfsd.to_csv(f'data4/data_sd_morepoints2.csv', mode='a', header=False, index=False)
 
 seed = 100000
 key = random.PRNGKey(seed)
