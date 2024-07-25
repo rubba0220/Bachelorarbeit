@@ -7,9 +7,9 @@ import nifty8.re as jft
 import pandas as pd
 import util
 import importlib
+import time
 importlib.reload(util)
 
-import time
 jax.config.update("jax_enable_x64", True)
 
 # Plot-Formatierung
@@ -33,16 +33,34 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-z2 = 0.
-z1 = 1500.
-n = 1501
-# hier noch Gedanken machen ob bis wohin ausreichend ist !!!
+z2 = 180.
+z1 = 1200.
+z3 = 5000.
+n = int(z1)+1
+n3 = int(z3-z1)+1
+
 poly = (0,0)
+
 norm = 50000
 n_bins = 300
 
-''' Forward Models '''
+''' Correlated Field '''
+dims = (n,)
+cf_zm = dict(offset_mean=0.0, offset_std=(1e-3, 1e-4))
+cf_fl = dict(
+    fluctuations=(1e-1, 5e-3),
+    loglogavgslope=(-1.0, 1e-2),
+    flexibility=(1e0, 5e-1),
+    asperity=(5e-1, 5e-2),
+)
+cfm = jft.CorrelatedFieldMaker("cf")
+cfm.set_amplitude_total_offset(**cf_zm)
+cfm.add_fluctuations(
+    dims, distances=1.0 / dims[0], **cf_fl, non_parametric_kind="power"
+)
+correlated_field = cfm.finalize()
 
+''' Forward Models '''
 def complicated_function(rho_s, sigma_s, rho_dm):
     params = jnp.column_stack((rho_s, sigma_s))
     rho_dm = rho_dm[0]
@@ -175,37 +193,39 @@ def test_mgvi(s):
     results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
     results["surfd"] = jft.mean_and_std(results["surfds"])
 
-    truthr = [*rho_s(pos_truth), rho_dm(pos_truth)[0]]
-    meanr = [results[f'rho{k+1}'][0] for k in range(15)] + [results['rhodm'][0]]
-    stdr = [results[f'rho{k+1}'][1] for k in range(15)] + [results['rhodm'][1]]
-
+    truthr = [*rho_s(pos_truth)]
+    meanr = [results[f'rho{k+1}'][0] for k in range(15)]
+    stdr = [results[f'rho{k+1}'][1] for k in range(15)]
 
     data_rho = {
         "True Value rho": truthr,
-
         "Inferred Value rho": meanr,
-
         "Standard Deviation rho": stdr,
-
         "Samples rho": [results[f'rhos{k+1}'] for k in range(15)] + [results['rhosdm']],
-
         "Abweichung rho": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
+    }
+
+    truthrd = [*rho_dm(pos_truth)]
+    meanrd = [results['rhodm'][0]]
+    stdrd = [results['rhodm'][1]]
+
+    data_rd = {
+        "True Value rho": truthrd,
+        "Inferred Value rho": meanrd,
+        "Standard Deviation rho": stdrd,
+        "Samples rho": [results['rhosdm']],
+        "Abweichung rho": list((jnp.array(truthrd) - jnp.array(meanrd))/jnp.array(stdrd))
     }
 
     truths = [*sigma_s(pos_truth)]
     means = [results[f'sigma{k+1}'][0] for k in range(15)]
     stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
-
     data_sigma = {
         "True Value sigma": truths,
-
         "Inferred Value sigma": means,
-
         "Standard Deviation sigma": stds,
-
         "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
-
         "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
     }
 
@@ -215,13 +235,9 @@ def test_mgvi(s):
 
     data_sd = {
         "True Value sd": truthsd,
-
         "Inferred Value sd": meansd,
-
         "Standard Deviation sd": stdsd,
-
         "Samples sd": [results['surfds']],
-
         "Abweichung sd": list((jnp.array(truthsd) - jnp.array(meansd))/jnp.array(stdsd))
     }
 
@@ -229,9 +245,9 @@ def test_mgvi(s):
     dfr = pd.DataFrame(data_rho)
     dfs = pd.DataFrame(data_sigma)
     dfsd = pd.DataFrame(data_sd)
-    dfr.to_csv(f'data4/data_rho_morepoints2.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'data4/data_sigma_morepoints2.csv', mode='a', header=False, index=False)
-    dfsd.to_csv(f'data4/data_sd_morepoints2.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'data_rho_test.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'data_sigma_test.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'data_sd_test.csv', mode='a', header=False, index=False)
 
 
 
@@ -239,7 +255,7 @@ seed = 42
 key = random.PRNGKey(seed)
 
 key, subkey = random.split(key)
-seeds = random.randint(subkey, (10,), 1, 1000000)
+seeds = random.randint(subkey, (1,), 1, 1000000)
 
 def has_duplicates(arr):
     seen = set()
