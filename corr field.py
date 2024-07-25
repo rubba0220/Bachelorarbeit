@@ -10,13 +10,13 @@ import nifty8.re as jft
 
 jax.config.update("jax_enable_x64", True)
 
-df = pd.read_csv("v2_58.txt")
+df = pd.read_csv("real data/v2_57.txt")
 z = jnp.array(df["z"].values)
 sorted_indices = jnp.argsort(z)
 z = z[sorted_indices]
 v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
-poly = np.loadtxt(f'real data/poly_58.txt')
+poly = np.loadtxt(f'real data/poly_57.txt')
 
 seed = 42
 key = random.PRNGKey(seed)
@@ -30,6 +30,13 @@ cf_fl = dict(
     flexibility=(1e-3, 1e-16),
     asperity=(1e-3, 1e-16),
 )
+# cf_zm = dict(offset_mean=6.5, offset_std=(6., 6.))
+# cf_fl = dict(   
+#         fluctuations=(6., 6.),
+#         loglogavgslope=(-15., 15.),
+#         flexibility=(1e-3, 1e-16),
+#         asperity=(1e-3, 1e-16),
+#         )
 cfm = jft.CorrelatedFieldMaker("cf")
 cfm.set_amplitude_total_offset(**cf_zm)
 cfm.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
@@ -44,14 +51,15 @@ class Signal(jft.Model):
     def __call__(self, x):
         grid = jnp.linspace(0, 1800, dims[0])
         sig = RegularGridInterpolator((grid,), self.cf(x))
+        # sig = RegularGridInterpolator((grid,), jnp.exp(self.cf(x)))
         return sig(z)
 
 
 signal = Signal(correlated_field)
 
 signal_response = signal
-noise_cov = lambda x: 7**2 * x
-noise_cov_inv = lambda x:7**(-2) * x
+noise_cov = lambda x: 1100**2 * x #7
+noise_cov_inv = lambda x:1100**(-2) * x #7
 
 # Create synthetic data
 # key, subkey = random.split(key)
@@ -62,7 +70,6 @@ noise_cov_inv = lambda x:7**(-2) * x
 # data = signal_response_truth + noise_truth
 
 data = v2
-
 lh = jft.Gaussian(data, noise_cov_inv).amend(signal_response)
 
 n_vi_iterations = 6
@@ -80,8 +87,6 @@ samples, state = jft.optimize_kl(
     # can be specified as point_estimates (effectively we are doing MAP for
     # these degrees of freedom).
     # point_estimates=("cfax1flexibility", "cfax1asperity"),
-    # Arguments for the conjugate gradient method used to drawing samples from
-    # an implicit covariance matrix
     draw_linear_kwargs=dict(
         cg_name="SL",
         cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
@@ -120,8 +125,6 @@ for ax, v in zip(axs.flat, to_plot):
     elif tp == 'plot':
         ax.plot(z, field)
     ax.plot(z, poly[0]*z+poly[1])
-for ax in axs.flat[len(to_plot) :]:
-    ax.set_axis_off()
 fig.tight_layout()
 fig.subplots_adjust(hspace=0)
 plt.show()
