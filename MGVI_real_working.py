@@ -36,8 +36,8 @@ poly = np.loadtxt(f'real data/poly_57.txt')
 
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 df_v2 = pd.read_csv(f'real data/v2_57.txt')
-z_v2 = jnp.array(df_v2["z"].values)[::10]
-v2 = jnp.array(df_v2["v2"].values)[::10]
+z_v2 = jnp.array(df_v2["z"].values)
+v2 = jnp.array(df_v2["v2"].values)
 sorted_indices = jnp.argsort(z_v2)
 z_v2 = z_v2[sorted_indices]
 v2 = jnp.array(df_v2["v2"].values)
@@ -99,7 +99,7 @@ class ForwardModel(jft.Model):
 
             uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
 
-            sigma_sq = RegularGridInterpolator((zs,), cf)
+            sigma_sq = RegularGridInterpolator((jnp.linspace(0, 1800, 1801),), cf)
             sig2 = sigma_sq(z_v2)
 
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
