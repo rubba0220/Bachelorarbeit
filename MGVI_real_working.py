@@ -29,7 +29,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 450.
+z2 = 270.
 z1 = 1800.
 z3 = 5000.
 interval = 'both'
@@ -56,9 +56,15 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 dims = (n, )
-cf_zm = dict(offset_mean=700., offset_std=(300., 300.))
-cf_fl = dict(   fluctuations=(700., 700.), 
-                loglogavgslope=(-20., 5.), #dickes ???
+# cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
+# cf_fl = dict(   fluctuations=(1000., 1000.), 
+#                 loglogavgslope=(-20., 5.), #dickes ???
+#                 flexibility=(1e-3, 1e-16),
+#                 asperity=(1e-3, 1e-16),)
+
+cf_zm = dict(offset_mean=7, offset_std=(4, 4))
+cf_fl = dict(   fluctuations=(7, 7),
+                loglogavgslope=(-30., 5.),
                 flexibility=(1e-3, 1e-16),
                 asperity=(1e-3, 1e-16),)
 
@@ -93,7 +99,8 @@ class ForwardModel(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        cf = self.correlated_field(x)
+        cf = jnp.exp(self.correlated_field(x)) 
+        # cf = self.correlated_field(x)
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
@@ -246,7 +253,8 @@ dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', head
 
 namps = cfm.get_normalized_amplitudes()
 post_sr_mean = jft.mean(tuple(fwd(s)['sig2'] for s in samples))
-corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+corrfield = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
+# corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
 grid = correlated_field.target_grids[0]
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
