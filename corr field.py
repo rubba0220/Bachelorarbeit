@@ -25,10 +25,10 @@ for s in seeds:
 
     dims = (1801, )
 
-    cf_zm = dict(offset_mean=700., offset_std=(300., 300.))
+    cf_zm = dict(offset_mean=7, offset_std=(4, 4)) #700-900 300-900
     cf_fl = dict(
-        fluctuations=(700., 700.),
-        loglogavgslope=(-20., 5.), #dickes ???
+        fluctuations=(7, 7), #700-1000
+        loglogavgslope=(-30., 5.), #dickes ??? #-20, 5
         flexibility=(1e-3, 1e-16),
         asperity=(1e-3, 1e-16),
     )
@@ -52,8 +52,8 @@ for s in seeds:
         @jit
         def __call__(self, x):
             grid = jnp.linspace(0, 1800, dims[0])
-            sig = RegularGridInterpolator((grid,), self.cf(x))
-            # sig = RegularGridInterpolator((grid,), jnp.exp(self.cf(x)))
+            sig = RegularGridInterpolator((grid,), jnp.exp(self.cf(x)))
+            # sig = RegularGridInterpolator((grid,), self.cf(x))
             return sig(z)
 
 
@@ -113,7 +113,8 @@ for s in seeds:
 
     namps = cfm.get_normalized_amplitudes()
     post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
-    corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
+    corrfield = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
+    # corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
     print(len(corrfield))
     post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
     grid = correlated_field.target_grids[0]
