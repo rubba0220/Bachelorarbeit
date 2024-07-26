@@ -55,8 +55,8 @@ n_bins = int(len(bins)-1)
 
 dims = (n, )
 cf_zm = dict(offset_mean=700., offset_std=(300., 300.))
-cf_fl = dict(   fluctuations=(700., 700.),
-                loglogavgslope=(-15., 15.),
+cf_fl = dict(   fluctuations=(700., 700.), 
+                loglogavgslope=(-20., 5.), #dickes ???
                 flexibility=(1e-3, 1e-16),
                 asperity=(1e-3, 1e-16),)
 
@@ -98,12 +98,8 @@ class ForwardModel(jft.Model):
             rho_dm = rho_dm[0]
 
             uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
-
-            sigma_sq = RegularGridInterpolator((jnp.linspace(0, 1800, 1801),), cf)
-            sig2 = sigma_sq(z_v2)
-
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
-            vdfo_norm_calc, z = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
+            vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
 
@@ -122,6 +118,7 @@ lh_sig2 = jft.Gaussian(v2, lambda x: 1/1100**2 * x).amend(R_sig2)	#7 #sinnvoller
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 
+#lh_dfo + lh_sd + lh_sig2
 
 ''' Optimization '''
 n_vi_iterations = 6
@@ -214,7 +211,6 @@ data_sigma = {
     "Standard Deviation sigma": stds,
     "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
 }
-
 
 meansd = [results['surfd'][0]]
 stdsd = [results['surfd'][1]]
