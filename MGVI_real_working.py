@@ -7,6 +7,7 @@ from jax.scipy.interpolate import RegularGridInterpolator
 import nifty8.re as jft
 import pandas as pd
 import matplotlib.pyplot as plt
+import util as util_old
 import util_working as util
 import importlib
 import time
@@ -15,6 +16,7 @@ jnp.set_printoptions(threshold=sys.maxsize)
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_debug_nans", True)
 
 ''' Massenmodell '''
 rhos = jnp.array([0.021, 0.016, 0.012, 0.0009, 0.0006, 0.0031, 0.0015, 0.0020, 0.0022, 0.007, 0.0135, 0.006, 0.002, 0.0035, 0.0001])
@@ -29,8 +31,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 270.
-z1 = 1800.
+z2 = 200.
+z1 = 1200.
 z3 = 5000.
 interval = 'both'
 
@@ -56,17 +58,17 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 dims = (n, )
-# cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
-# cf_fl = dict(   fluctuations=(1000., 1000.), 
-#                 loglogavgslope=(-20., 5.), #dickes ???
-#                 flexibility=(1e-3, 1e-16),
-#                 asperity=(1e-3, 1e-16),)
-
-cf_zm = dict(offset_mean=7, offset_std=(4, 4))
-cf_fl = dict(   fluctuations=(7, 7),
-                loglogavgslope=(-30., 5.),
+cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
+cf_fl = dict(   fluctuations=(1000., 1000.), 
+                loglogavgslope=(-20., 5.), #dickes ???
                 flexibility=(1e-3, 1e-16),
                 asperity=(1e-3, 1e-16),)
+
+# cf_zm = dict(offset_mean=7, offset_std=(4, 4))
+# cf_fl = dict(   fluctuations=(7, 7),
+#                 loglogavgslope=(-30., 5.),
+#                 flexibility=(1e-3, 1e-16),
+#                 asperity=(1e-3, 1e-16),)
 
 cfm = jft.CorrelatedFieldMaker("cf")
 cfm.set_amplitude_total_offset(**cf_zm)
@@ -99,16 +101,21 @@ class ForwardModel(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        cf = jnp.exp(self.correlated_field(x)) 
-        # cf = self.correlated_field(x)
+        # cf = jnp.exp(self.correlated_field(x)) 
+        cf = self.correlated_field(x)
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
             rho_dm = rho_dm[0]
 
             uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+
+            # sigma_sq = RegularGridInterpolator((zs, ), cf)
+            # sig2 = sigma_sq(z_v2)
+
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
+            # vdfo_norm_calc, z = util_old.vdfo_norm(z2, z1, zs, uz, n, poly)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
 
@@ -125,7 +132,7 @@ lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/4.6**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(v2, lambda x: 1/1100**2 * x).amend(R_sig2)	#7 #sinnvoller wählen !!!!
 
-lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
+lh = (lh_dfo + lh_sd).amend(fwd)
 
 #lh_dfo + lh_sd + lh_sig2
 
@@ -253,8 +260,8 @@ dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', head
 
 namps = cfm.get_normalized_amplitudes()
 post_sr_mean = jft.mean(tuple(fwd(s)['sig2'] for s in samples))
-corrfield = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
-# corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+# corrfield = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
+corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
 grid = correlated_field.target_grids[0]
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
@@ -265,9 +272,9 @@ data_cf = {
     "Standard Deviation cf": [corrfield[1]],
 }
 
-dfcf = pd.DataFrame(data_cf)
-dfcf.set_index('Run', inplace=True)
-dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+# dfcf = pd.DataFrame(data_cf)
+# dfcf.set_index('Run', inplace=True)
+# dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
 
 fig, axs = plt.subplots(2, 1, figsize=(20, 20), sharex=True)
 for ax, v in zip(axs.flat, to_plot):
