@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import util_working as util
 import importlib
 import time
+import sys
+jnp.set_printoptions(threshold=sys.maxsize)
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
@@ -27,7 +29,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 250.
+z2 = 450.
 z1 = 1800.
 z3 = 5000.
 interval = 'both'
@@ -135,6 +137,7 @@ key = random.PRNGKey(seed)
 # print(len(dfo_truth), sd_truth, len(sig2_truth))
 key, k_i, k_o = random.split(key, 3)
 
+t0 = time.time()
 samples, state = jft.optimize_kl(
     lh,
     jft.Vector(lh.init(k_i)),
@@ -222,6 +225,8 @@ data_sd = {
     "Samples sd": [results['surfds']],
 }
 
+t1 = time.time()
+print('Time: ', t1-t0)
 
 dfr = pd.DataFrame(data_rho)
 dfr.set_index('Run', inplace=True)
@@ -241,9 +246,20 @@ dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', head
 
 namps = cfm.get_normalized_amplitudes()
 post_sr_mean = jft.mean(tuple(fwd(s)['sig2'] for s in samples))
+corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
 grid = correlated_field.target_grids[0]
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
+
+data_cf = {
+    "Run": ['corrfield ' + string],
+    "Inferred Value cf": [corrfield[0]],
+    "Standard Deviation cf": [corrfield[1]],
+}
+
+dfcf = pd.DataFrame(data_cf)
+dfcf.set_index('Run', inplace=True)
+dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
 
 fig, axs = plt.subplots(2, 1, figsize=(20, 20), sharex=True)
 for ax, v in zip(axs.flat, to_plot):
@@ -257,4 +273,10 @@ for ax, v in zip(axs.flat, to_plot):
     ax.plot(z_v2, poly[0]*z_v2+poly[1])
 fig.tight_layout()
 fig.subplots_adjust(hspace=0)
+plt.show()
+
+fig = plt.figure(figsize=(20, 10))
+plt.plot(jnp.linspace(0., z1, n), jnp.sqrt(corrfield[0]))
+plt.grid()
+fig.tight_layout()
 plt.show()

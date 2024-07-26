@@ -18,7 +18,7 @@ v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data/poly_57.txt')
 
-seeds = [12, 34, 56, 78, 93, 102, 400, 234]
+seeds = [42]#,12 , 34, 56, 78, 93, 102, 400, 234]
 for s in seeds:
     seed = s
     key = random.PRNGKey(seed)
@@ -113,6 +113,8 @@ for s in seeds:
 
     namps = cfm.get_normalized_amplitudes()
     post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
+    corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
+    print(len(corrfield))
     post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
     grid = correlated_field.target_grids[0]
     to_plot = [("Data", data, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
