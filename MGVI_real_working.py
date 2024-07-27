@@ -32,12 +32,11 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 am_min = 5
 am_max = 6
 z2 = 200.
-z1 = 1800.
+z1 = 1200.
 z3 = 5000.
 interval = 'both'
 
 poly = np.loadtxt(f'real data/poly_57.txt')
-rough_func = ( 20. + 8./1200. * jnp.linspace(0, z1, n) )**2
 
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 df_v2 = pd.read_csv(f'real data/v2_57.txt')
@@ -57,6 +56,10 @@ n3 = int(z3-z1)+1
 
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
+
+m_poly = jft.LogNormalPrior(poly[0], 0.5*poly[0], name="m_steig", shape=(1,))
+b_poly = jft.LogNormalPrior(poly[1], 0.5*poly[1], name="b_steig", shape=(1,))
+# rough_func = ( 20. + 8./1200. * jnp.linspace(0, z1, n) )**2
 
 dims = (n, )
 # cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
@@ -100,14 +103,19 @@ class ForwardModel(jft.Model):
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
         self.correlated_field = correlated_field
+        self.m_poly = m_poly
+        self.b_poly = b_poly
 
-        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init)
+        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
 
     @jit
     def __call__(self, x):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
+        m = self.m_poly(x)
+        b = self.b_poly(x)
+        rough_func = (b + m*jnp.linspace(0, z1, n))
         # cf = self.correlated_field(x)
         # cf = jnp.exp(self.correlated_field(x))
         cf = rough_func * jnp.exp(self.correlated_field(x))
@@ -259,17 +267,17 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-# dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-# dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-# dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-# dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
 
 
 
 namps = cfm.get_normalized_amplitudes()
 # Sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 # Sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
-Sigma_sq = jft.mean_and_std(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
+Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq[0], 'plot'), ("Correlated Field", corrfield[0], 'plot2')]
 
@@ -284,7 +292,7 @@ data_cf = {
 
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
-# dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
 
 fig, axs = plt.subplots(3, 1, figsize=(20, 20))
 grid = jnp.linspace(0, z1, n)
