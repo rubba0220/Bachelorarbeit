@@ -22,7 +22,7 @@ v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data/poly_57.txt')
 
-z1 = 1200
+z1 = 1600
 n = int(z1)+1
 
 seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]

@@ -32,7 +32,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 am_min = 5
 am_max = 6
 z2 = 200.
-z1 = 1200.
+z1 = 1600.
 z3 = 5000.
 interval = 'both'
 
@@ -139,7 +139,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 10
+n_samples = 10 #mit 4 funkrioniert es bwi 1600
 
 seed = 42
 key = random.PRNGKey(seed)
@@ -251,10 +251,10 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-# dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-# dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-# dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-# dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2_.csv', mode='a', header=False)
+dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2_.csv', mode='a', header=False)
+dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2_.csv', mode='a', header=False)
+dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2_.csv', mode='a', header=False)
 
 
 
@@ -266,6 +266,7 @@ to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq[0], 'plot'), ("C
 
 data_cf = {
     "Run": ['corrfield ' + string],
+    "Data": [v2],
     "Inferred Value cf": [corrfield[0]],
     "Standard Deviation cf": [corrfield[1]],
     "Inferred Value Sigma_sq": [Sigma_sq[0]],
@@ -274,7 +275,7 @@ data_cf = {
 
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
-# dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2_.csv', mode='a', header=False)
 
 fig, axs = plt.subplots(3, 1, figsize=(20, 20))
 grid = jnp.linspace(0, z1, n)
