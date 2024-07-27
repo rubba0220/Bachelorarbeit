@@ -37,6 +37,7 @@ z3 = 5000.
 interval = 'both'
 
 poly = np.loadtxt(f'real data/poly_57.txt')
+rough_func = ( 20. + 8./1200. * jnp.linspace(0, z1, n) )**2
 
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 df_v2 = pd.read_csv(f'real data/v2_57.txt')
@@ -109,7 +110,7 @@ class ForwardModel(jft.Model):
         rdm = self.rho_dm(x)
         # cf = self.correlated_field(x)
         # cf = jnp.exp(self.correlated_field(x))
-        cf = ( 20. + 10./1200. * jnp.linspace(0, z1, n) )**2 * jnp.exp(self.correlated_field(x))
+        cf = rough_func * jnp.exp(self.correlated_field(x))
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
@@ -258,17 +259,17 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
-dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+# dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+# dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+# dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+# dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
 
 
 
 namps = cfm.get_normalized_amplitudes()
 # Sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 # Sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
-Sigma_sq = jft.mean_and_std(tuple(( 20.+10./1200. * jnp.linspace(0, z1, n) )**2 * jnp.exp(correlated_field(s)) for s in samples))
+Sigma_sq = jft.mean_and_std(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq[0], 'plot'), ("Correlated Field", corrfield[0], 'plot2')]
 
@@ -283,7 +284,7 @@ data_cf = {
 
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
-dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
+# dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2__.csv', mode='a', header=False)
 
 fig, axs = plt.subplots(3, 1, figsize=(20, 20))
 grid = jnp.linspace(0, z1, n)
