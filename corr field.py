@@ -7,39 +7,43 @@ from jax.scipy.interpolate import RegularGridInterpolator
 import pandas as pd
 import numpy as np
 import nifty8.re as jft
+import util_working
 
 jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_debug_nans", False)
 
+''' Data '''
 df = pd.read_csv("real data/v2_57.txt")
 z = jnp.array(df["z"].values)
 sorted_indices = jnp.argsort(z)
 z = z[sorted_indices]
-print(max(z))
+print('Größtes z in Geschwindigkeitsdaten: ', max(z))
 v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data/poly_57.txt')
 
-seeds = [42]#,12 , 34, 56, 78, 93, 102, 400, 234]
+z1 = 1200
+n = int(z1)+1
+
+seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]
 for s in seeds:
     seed = s
     key = random.PRNGKey(seed)
-    n = 1201
+
+    ''' Model '''
     dims = (n, )
 
-    # cf_zm = dict(offset_mean=7, offset_std=(4, 4)) #700-900 300-900
-    # cf_fl = dict(
-    #     fluctuations=(7, 7), #700-1000
-    #     loglogavgslope=(-30., 5.), #dickes ??? #-20, 5
-    #     flexibility=(1e-3, 1e-16),
-    #     asperity=(1e-3, 1e-16),
-    # )
-    cf_zm = dict(offset_mean=900, offset_std=(900, 900))
-    cf_fl = dict(   
-            fluctuations=(1000, 1000),
-            loglogavgslope=(-20., 5.),
-            flexibility=(1e-3, 1e-16),
-            asperity=(1e-3, 1e-16),
-            )
+    cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
+    cf_fl = dict(   fluctuations=(1.5, 1.5), #7 direkt conjugate gradient failed
+                    loglogavgslope=(-3., 3.),
+                    flexibility=(1e-3, 1e-16),
+                    asperity=(1e-3, 1e-16),)
+    # cf_zm = dict(offset_mean=900, offset_std=(900, 900))
+    # cf_fl = dict(   fluctuations=(1000, 1000),
+    #                 loglogavgslope=(-20., 5.),
+    #                 flexibility=(1e-3, 1e-16),
+    #                 asperity=(1e-3, 1e-16),)
+
     cfm = jft.CorrelatedFieldMaker("cf")
     cfm.set_amplitude_total_offset(**cf_zm)
     cfm.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
@@ -47,22 +51,22 @@ for s in seeds:
 
     class Signal(jft.Model):
         def __init__(self, correlated_field):
-            self.cf = correlated_field
+            self.correlated_field = correlated_field
             
-            super().__init__(init=self.cf.init)
-        @jit
+            super().__init__(init=self.correlated_field.init)
+        
         def __call__(self, x):
-            grid = jnp.linspace(0, float(n-1), n)
-            # sig = RegularGridInterpolator((grid,), jnp.exp(self.cf(x)))
-            sig = RegularGridInterpolator((grid,), self.cf(x))
+            cf = self.correlated_field(x)
+            grid = jnp.linspace(0, z1, n)
+            sig = RegularGridInterpolator((grid,), jnp.exp(cf))
+            # sig = RegularGridInterpolator((grid,), cf)
             return sig(z)
 
-
     signal = Signal(correlated_field)
-
+    
     signal_response = signal
-    noise_cov = lambda x: 1100**2 * x #7
-    noise_cov_inv = lambda x:1100**(-2) * x #7
+    noise_cov = lambda x: 1100**2 * x
+    noise_cov_inv = lambda x:1100**(-2) * x
 
     # Create synthetic data
     # key, subkey = random.split(key)
@@ -72,12 +76,12 @@ for s in seeds:
     # noise_truth = ((noise_cov(jft.ones_like(signal_response.target))) ** 0.5) * jft.random_like(key, signal_response.target)
     # data = signal_response_truth + noise_truth
 
-    data = v2
-    lh = jft.Gaussian(data, noise_cov_inv).amend(signal_response)
+    lh = jft.Gaussian(v2, noise_cov_inv).amend(signal_response)
 
+    ''' Inference '''
     n_vi_iterations = 6
     delta = 1e-4
-    n_samples = 10
+    n_samples = 4
 
     key, k_i, k_o = random.split(key, 3)
     samples, state = jft.optimize_kl(
@@ -112,25 +116,43 @@ for s in seeds:
         resume=False,
     )
 
+    # key, subkey = random.split(key)
+    # samples = [jft.random_like(subkey, signal_response.domain)]
+
+    ''' Auswertung '''
     namps = cfm.get_normalized_amplitudes()
     post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
-    # corrfield = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
     corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
-    print(len(corrfield))
+    sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
+    # sigma_sq = jft.mean(tuple(correlated_field(s) for s in samples))
     post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
-    grid = correlated_field.target_grids[0]
-    to_plot = [("Data", data, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
+    grid_ = correlated_field.target_grids[0]
 
-    fig, axs = plt.subplots(2, 1, figsize=(20, 20), sharex=True)
+    to_plot = [ ("Data", data, 'scatter'), 
+                ("Reconstruction", post_sr_mean, 'plot'), 
+                ("Correlated Field", corrfield, 'plot2'),
+                ('Sigma_sq', sigma_sq, 'plot2'),
+                ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
+                                        post_a_mean), "loglog")]
+
+    fig, axs = plt.subplots(5, 1, figsize=(20, 20))
     for ax, v in zip(axs.flat, to_plot):
         title, field, tp = v
         ax.set_title(title)
         ax.grid()
         if tp == 'scatter':
             ax.scatter(z, field, marker='.')
+            ax.plot(z, poly[0]*z+poly[1])
+            ax.sharex(axs[0])
         elif tp == 'plot':
             ax.plot(z, field)
-        ax.plot(z, poly[0]*z+poly[1])
+            ax.plot(z, poly[0]*z+poly[1])
+            ax.sharex(axs[0])
+        elif tp == 'plot2':
+            ax.plot(jnp.linspace(0, z1, n), field)
+            ax.sharex(axs[0])
+        elif tp == 'loglog':
+            x = field[0]
+            ax.loglog(x, field[1], alpha=0.7)
     fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
     plt.show()

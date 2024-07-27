@@ -16,7 +16,7 @@ jnp.set_printoptions(threshold=sys.maxsize)
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_debug_nans", True)
+jax.config.update("jax_debug_nans", False)
 
 ''' Massenmodell '''
 rhos = jnp.array([0.021, 0.016, 0.012, 0.0009, 0.0006, 0.0031, 0.0015, 0.0020, 0.0022, 0.007, 0.0135, 0.006, 0.002, 0.0035, 0.0001])
@@ -58,17 +58,17 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 dims = (n, )
-cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
-cf_fl = dict(   fluctuations=(1000., 1000.), 
-                loglogavgslope=(-20., 5.), #dickes ???
-                flexibility=(1e-3, 1e-16),
-                asperity=(1e-3, 1e-16),)
-
-# cf_zm = dict(offset_mean=7, offset_std=(4, 4))
-# cf_fl = dict(   fluctuations=(7, 7),
-#                 loglogavgslope=(-30., 5.),
+# cf_zm = dict(offset_mean=900., offset_std=(700., 700.))
+# cf_fl = dict(   fluctuations=(1000., 1000.), 
+#                 loglogavgslope=(-20., 5.), #dickes ???
 #                 flexibility=(1e-3, 1e-16),
 #                 asperity=(1e-3, 1e-16),)
+
+cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
+cf_fl = dict(   fluctuations=(1.5, 1.5),
+                loglogavgslope=(-3., 3.),
+                flexibility=(1e-3, 1e-16),
+                asperity=(1e-3, 1e-16),)
 
 cfm = jft.CorrelatedFieldMaker("cf")
 cfm.set_amplitude_total_offset(**cf_zm)
@@ -101,8 +101,8 @@ class ForwardModel(jft.Model):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        # cf = jnp.exp(self.correlated_field(x)) 
-        cf = self.correlated_field(x)
+        # cf = self.correlated_field(x)
+        cf = jnp.exp(self.correlated_field(x)) 
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
@@ -132,7 +132,7 @@ lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/4.6**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(v2, lambda x: 1/1100**2 * x).amend(R_sig2)	#7 #sinnvoller wählen !!!!
 
-lh = (lh_dfo + lh_sd).amend(fwd)
+lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 
 #lh_dfo + lh_sd + lh_sig2
 
@@ -251,47 +251,50 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
-dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+# dfr.to_csv(f'real data test/rho_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+# dfrd.to_csv(f'real data test/rd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+# dfs.to_csv(f'real data test/sigma_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
+# dfsd.to_csv(f'real data test/sd_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
 
 
 
 namps = cfm.get_normalized_amplitudes()
-post_sr_mean = jft.mean(tuple(fwd(s)['sig2'] for s in samples))
-# corrfield = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
+# Sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+Sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
-post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
-grid = correlated_field.target_grids[0]
-to_plot = [("Data", v2, 'scatter'), ("Reconstruction", post_sr_mean, 'plot')]
+to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq[0], 'plot'), ("Correlated Field", corrfield[0], 'plot2')]
 
 data_cf = {
     "Run": ['corrfield ' + string],
     "Inferred Value cf": [corrfield[0]],
     "Standard Deviation cf": [corrfield[1]],
+    "Inferred Value Sigma_sq": [Sigma_sq[0]],
+    "Standard Deviation Sigma_sq": [Sigma_sq[1]],
 }
 
-# dfcf = pd.DataFrame(data_cf)
-# dfcf.set_index('Run', inplace=True)
+dfcf = pd.DataFrame(data_cf)
+dfcf.set_index('Run', inplace=True)
 # dfcf.to_csv(f'real data test/cf_{am_min:.0f}{am_max:.0f}_v2.csv', mode='a', header=False)
 
-fig, axs = plt.subplots(2, 1, figsize=(20, 20), sharex=True)
+fig, axs = plt.subplots(3, 1, figsize=(20, 20))
+grid = jnp.linspace(0, z1, n)
 for ax, v in zip(axs.flat, to_plot):
     title, field, tp = v
     ax.set_title(title)
     ax.grid()
     if tp == 'scatter':
         ax.scatter(z_v2, field, marker='.')
+        ax.plot(z_v2, poly[0]*z_v2+poly[1])
+        ax.sharex(axs[0])
     elif tp == 'plot':
-        ax.plot(z_v2, field)
-    ax.plot(z_v2, poly[0]*z_v2+poly[1])
-fig.tight_layout()
-fig.subplots_adjust(hspace=0)
-plt.show()
-
-fig = plt.figure(figsize=(20, 10))
-plt.plot(jnp.linspace(0., z1, n), jnp.sqrt(corrfield[0]))
-plt.grid()
+        ax.plot(grid, field)
+        ax.plot(grid, poly[0]*grid+poly[1])
+        ax.sharex(axs[0])
+    elif tp == 'plot2':
+        ax.plot(jnp.linspace(0, z1, n), field)
+        ax.sharex(axs[0])
+    elif tp == 'loglog':
+        x = field[0]
+        ax.loglog(x, field[1], alpha=0.7)
 fig.tight_layout()
 plt.show()
