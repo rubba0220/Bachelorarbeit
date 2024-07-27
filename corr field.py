@@ -22,7 +22,7 @@ v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data/poly_57.txt')
 
-z1 = 1600
+z1 = 1800
 n = int(z1)+1
 
 seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]
@@ -33,11 +33,16 @@ for s in seeds:
     ''' Model '''
     dims = (n, )
 
-    cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
-    cf_fl = dict(   fluctuations=(1.5, 1.5), #7 direkt conjugate gradient failed
+    cf_zm = dict(offset_mean=0., offset_std=(1., 1.))
+    cf_fl = dict(   fluctuations=(1., 1.), #7 direkt conjugate gradient failed
                     loglogavgslope=(-3., 3.),
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
+    # cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
+    # cf_fl = dict(   fluctuations=(1.5, 1.5), #7 direkt conjugate gradient failed
+    #                 loglogavgslope=(-3., 3.),
+    #                 flexibility=(1e-3, 1e-16),
+    #                 asperity=(1e-3, 1e-16),)
     # cf_zm = dict(offset_mean=900, offset_std=(900, 900))
     # cf_fl = dict(   fluctuations=(1000, 1000),
     #                 loglogavgslope=(-20., 5.),
@@ -56,10 +61,11 @@ for s in seeds:
             super().__init__(init=self.correlated_field.init)
         
         def __call__(self, x):
-            cf = self.correlated_field(x)
+            cf = ( 20. + 10./1200 * jnp.linspace(0, z1, n) )**2 * jnp.exp(self.correlated_field(x))
+            # cf = jnp.exp(self.correlated_field(x))
+            # cf = self.correlated_field(x)
             grid = jnp.linspace(0, z1, n)
-            sig = RegularGridInterpolator((grid,), jnp.exp(cf))
-            # sig = RegularGridInterpolator((grid,), cf)
+            sig = RegularGridInterpolator((grid,), cf)
             return sig(z)
 
     signal = Signal(correlated_field)
@@ -123,7 +129,8 @@ for s in seeds:
     namps = cfm.get_normalized_amplitudes()
     post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
     corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
-    sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
+    sigma_sq = jft.mean(tuple(( 20.+10./1200. * jnp.linspace(0, z1, n) )**2 * jnp.exp(correlated_field(s)) for s in samples))
+    # sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
     # sigma_sq = jft.mean(tuple(correlated_field(s) for s in samples))
     post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
     grid_ = correlated_field.target_grids[0]
