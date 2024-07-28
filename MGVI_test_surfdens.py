@@ -1,4 +1,4 @@
-#MGVI_test_bin.py
+#MGVI_test_surfdens.py
 import jax
 import jax.numpy as jnp
 from jax import jit, random
@@ -100,7 +100,7 @@ def test_mgvi(s):
     noise_truth = ((noise_cov(jft.ones_like((fwd.target)['sd']))) ** 0.5) * jft.random_like(key, (fwd.target)['sd'])
     sd_truth = sd_truth + noise_truth
     
-    print('Surface density truth: ' sd_truth, noise_truth)
+    print('Surface density truth: ', sd_truth, noise_truth)
 
     #Visualisierung
     i_s = int((z2-0.)/(z1-0.) * (n-1))
@@ -110,7 +110,7 @@ def test_mgvi(s):
     fig, ax = plt.subplots(figsize=(20,10))
     ax.set_xlabel('z/pc')
     ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter(z_borders[:-1], fwd_truth, marker='o')
+    ax.scatter(z_borders[:-1], dfo_truth, marker='o')
     ax.grid()
     fig.tight_layout()
     plt.show()
@@ -163,6 +163,8 @@ def test_mgvi(s):
         exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
     results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
     results["rhodm"] = jft.mean_and_std(results["rhosdm"])
+    results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
+    results["surfd"] = jft.mean_and_std(results["surfds"])
 
     truthr = [*rho_s(pos_truth)]
     meanr = [results[f'rho{k+1}'][0] for k in range(15)]
@@ -217,10 +219,10 @@ def test_mgvi(s):
     dfs = pd.DataFrame(data_sigma)
     dfsd = pd.DataFrame(data_sd)
 
-    dfr.to_csv(f'finale tests/rhos_bin.csv', mode='a', header=False, index=False)
-    dfrd.to_csv(f'finale tests/rhodm_bin.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'finale tests/sigma_bin.csv', mode='a', header=False, index=False)
-    dfsd.to_csv(f'data4/data_sd_morepoints2.csv', mode='a', header=False, index=False)
+    dfr.to_csv(f'finale tests/rhos_surfdens.csv', mode='a', header=False, index=False)
+    dfrd.to_csv(f'finale tests/rhodm_surfdens.csv', mode='a', header=False, index=False)
+    dfs.to_csv(f'finale tests/sigma_surfdens.csv', mode='a', header=False, index=False)
+    dfsd.to_csv(f'finale tests/data_sd_surfdens.csv', mode='a', header=False, index=False)
 
 seed = 100000
 key = random.PRNGKey(seed)

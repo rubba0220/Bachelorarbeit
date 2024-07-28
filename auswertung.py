@@ -159,7 +159,8 @@ def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', Zoom 
 
 # Auswertung2('finale tests/rhos_vdfo_uniform.csv', 'finale tests/sigma_vdfo_uniform.csv', 'finale tests/rhodm_vdfo_uniform.csv', name='changes', Zoom = None)
 # Auswertung2('finale tests/rhos_vdfo.csv', 'finale tests/sigma_vdfo.csv', 'finale tests/rhodm_vdfo.csv', name='changes', Zoom = None)
-Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='changes', Zoom = None)
+# Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='changes', Zoom = None)
+Auswertung2('finale tests/rhos_surfdens.csv', 'finale tests/sigma_surfdens.csv', 'finale tests/rhodm_surfdens.csv', name='changes', Zoom = None)
 
 # data_roh = pd.read_csv('data3/data_rho_more.csv', header=None)
 
