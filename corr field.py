@@ -22,10 +22,22 @@ v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data/poly_57.txt')
 
+# rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
+# label = 'fit'
+rough_func = (17. + 10./1200. * jnp.linspace(0, z1, n) )**2
+label = 'read'
+# rough_func = 450. + 400./1000. * jnp.linspace(0, z1, n)
+# label = 'read2'
+# run = 'cf'
+# run = 'exp(cf)'
+run = 'rough_func'
+
+inference = True
+
 z1 = 1800
 n = int(z1)+1
 
-seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]
+seeds = [42]#, 12 , 34, 56, 78, 93, 102, 400, 234]
 for s in seeds:
     seed = s
     key = random.PRNGKey(seed)
@@ -33,21 +45,24 @@ for s in seeds:
     ''' Model '''
     dims = (n, )
 
-    cf_zm = dict(offset_mean=0., offset_std=(1., 1.))
-    cf_fl = dict(   fluctuations=(1., 1.), #7 direkt conjugate gradient failed
-                    loglogavgslope=(-3., 3.),
-                    flexibility=(1e-3, 1e-16),
-                    asperity=(1e-3, 1e-16),)
-    # cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
-    # cf_fl = dict(   fluctuations=(1.5, 1.5), #7 direkt conjugate gradient failed
-    #                 loglogavgslope=(-3., 3.),
-    #                 flexibility=(1e-3, 1e-16),
-    #                 asperity=(1e-3, 1e-16),)
-    # cf_zm = dict(offset_mean=900, offset_std=(900, 900))
-    # cf_fl = dict(   fluctuations=(1000, 1000),
-    #                 loglogavgslope=(-20., 5.),
-    #                 flexibility=(1e-3, 1e-16),
-    #                 asperity=(1e-3, 1e-16),)
+    if run == 'rough_func':
+        cf_zm = dict(offset_mean=0., offset_std=(1., 1.))
+        cf_fl = dict(   fluctuations=(1., 1.),
+                        loglogavgslope=(-3., 3.),
+                        flexibility=(1e-3, 1e-16),
+                        asperity=(1e-3, 1e-16),)
+    elif run == 'exp(cf)':
+        cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
+        cf_fl = dict(   fluctuations=(1.5, 1.5), #7 direkt conjugate gradient failed
+                        loglogavgslope=(-3., 3.),
+                        flexibility=(1e-3, 1e-16),
+                        asperity=(1e-3, 1e-16),)
+    elif run == 'cf':
+        cf_zm = dict(offset_mean=800, offset_std=(500, 500))
+        cf_fl = dict(   fluctuations=(300, 300),
+                        loglogavgslope=(-3., 3.),
+                        flexibility=(1e-3, 1e-16),
+                        asperity=(1e-3, 1e-16),)
 
     cfm = jft.CorrelatedFieldMaker("cf")
     cfm.set_amplitude_total_offset(**cf_zm)
@@ -61,9 +76,12 @@ for s in seeds:
             super().__init__(init=self.correlated_field.init)
         
         def __call__(self, x):
-            cf = ( 20. + 10./1200 * jnp.linspace(0, z1, n) )**2 * jnp.exp(self.correlated_field(x))
-            # cf = jnp.exp(self.correlated_field(x))
-            # cf = self.correlated_field(x)
+            if run == 'rough_func':
+                cf = rough_func * jnp.exp(self.correlated_field(x))
+            elif run == 'exp(cf)':
+                cf = jnp.exp(self.correlated_field(x))
+            elif run == 'cf':
+                cf = self.correlated_field(x)
             grid = jnp.linspace(0, z1, n)
             sig = RegularGridInterpolator((grid,), cf)
             return sig(z)
@@ -84,82 +102,136 @@ for s in seeds:
 
     lh = jft.Gaussian(v2, noise_cov_inv).amend(signal_response)
 
-    ''' Inference '''
-    n_vi_iterations = 6
-    delta = 1e-4
-    n_samples = 4
+    if inference:
+        ''' Inference '''
+        n_vi_iterations = 6
+        delta = 1e-4
+        n_samples = 4
 
-    key, k_i, k_o = random.split(key, 3)
-    samples, state = jft.optimize_kl(
-        lh,
-        jft.Vector(lh.init(k_i)),
-        n_total_iterations=n_vi_iterations,
-        n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
-        key=k_o,
-        # Names of parameters that should not be sampled but still optimized
-        # can be specified as point_estimates (effectively we are doing MAP for
-        # these degrees of freedom).
-        # point_estimates=("cfax1flexibility", "cfax1asperity"),
-        draw_linear_kwargs=dict(
-            cg_name="SL",
-            cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
-        ),
-        nonlinearly_update_kwargs=dict(
-            minimize_kwargs=dict(
-                name="SN",
-                xtol=delta,
-                cg_kwargs=dict(name=None),
-                maxiter=5,
-            )
-        ),
-        kl_kwargs=dict(
-            minimize_kwargs=dict(
-                name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
-            )
-        ),
-        sample_mode="nonlinear_resample",
-        odir="results_intro",
-        resume=False,
-    )
+        key, k_i, k_o = random.split(key, 3)
+        samples, state = jft.optimize_kl(
+            lh,
+            jft.Vector(lh.init(k_i)),
+            n_total_iterations=n_vi_iterations,
+            n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+            key=k_o,
+            # Names of parameters that should not be sampled but still optimized
+            # can be specified as point_estimates (effectively we are doing MAP for
+            # these degrees of freedom).
+            # point_estimates=("cfax1flexibility", "cfax1asperity"),
+            draw_linear_kwargs=dict(
+                cg_name="SL",
+                cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+            ),
+            nonlinearly_update_kwargs=dict(
+                minimize_kwargs=dict(
+                    name="SN",
+                    xtol=delta,
+                    cg_kwargs=dict(name=None),
+                    maxiter=5,
+                )
+            ),
+            kl_kwargs=dict(
+                minimize_kwargs=dict(
+                    name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+                )
+            ),
+            sample_mode="nonlinear_resample",
+            odir="results_intro",
+            resume=False,
+        )
 
-    # key, subkey = random.split(key)
-    # samples = [jft.random_like(subkey, signal_response.domain)]
+        ''' Auswertung '''
+        post_sr_mean = jft.mean_and_std(tuple(signal(s) for s in samples))
+        corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+        if run == 'rough_func':
+            sigma_sq = jft.mean_and_std(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
+        elif run == 'exp(cf)':
+            sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
+        elif run == 'cf':
+            sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+        post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
+        grid_ = correlated_field.target_grids[0]
 
-    ''' Auswertung '''
-    namps = cfm.get_normalized_amplitudes()
-    post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
-    corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
-    sigma_sq = jft.mean(tuple(( 20.+10./1200. * jnp.linspace(0, z1, n) )**2 * jnp.exp(correlated_field(s)) for s in samples))
-    # sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
-    # sigma_sq = jft.mean(tuple(correlated_field(s) for s in samples))
-    post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
-    grid_ = correlated_field.target_grids[0]
+        to_plot = [ ("Data", v2, 'scatter'), 
+                    ("Reconstruction", post_sr_mean, 'plot'), 
+                    ("Correlated Field", corrfield, 'plot2'),
+                    ('Sigma_sq', sigma_sq, 'plot2'),
+                    ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
+                                            post_a_mean), "loglog")]
 
-    to_plot = [ ("Data", data, 'scatter'), 
-                ("Reconstruction", post_sr_mean, 'plot'), 
-                ("Correlated Field", corrfield, 'plot2'),
-                ('Sigma_sq', sigma_sq, 'plot2'),
-                ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
-                                        post_a_mean), "loglog")]
+        fig, axs = plt.subplots(5, 1, figsize=(20, 20))
+        for ax, v in zip(axs.flat, to_plot):
+            title, field, tp = v
+            ax.set_title(title)
+            ax.grid()
+            if tp == 'scatter':
+                ax.scatter(z, field, marker='.')
+                ax.plot(z, poly[0]*z+poly[1])
+                ax.sharex(axs[0])
+            elif tp == 'plot':
+                ax.plot(z, field[0])
+                ax.plot(z, field[0]+field[1], alpha=0.5)
+                ax.plot(z, field[0]-field[1], alpha=0.5)
+                ax.plot(z, poly[0]*z+poly[1])
+                ax.sharex(axs[0])
+            elif tp == 'plot2':
+                ax.plot(jnp.linspace(0, z1, n), field[0])
+                ax.plot(jnp.linspace(0, z1, n), field[0]+field[1], alpha=0.5)
+                ax.plot(jnp.linspace(0, z1, n), field[0]-field[1], alpha=0.5)
+                ax.sharex(axs[0])
+            elif tp == 'loglog':
+                x = field[0]
+                ax.loglog(x, field[1], alpha=0.7)
+        fig.tight_layout()
+        if run == 'rough_func':
+            fig.savefig(f'Plots/corrfield_rough_func_{label}.png')
+        elif run == 'exp(cf)':
+            fig.savefig(f'Plots/corrfield_exp_cf.png')
+        elif run == 'cf':
+            fig.savefig(f'Plots/corrfield_cf.png')
+        plt.show()
+    
+    else:
+        key, subkey = random.split(key)
+        samples = [jft.random_like(subkey, signal_response.domain)]
 
-    fig, axs = plt.subplots(5, 1, figsize=(20, 20))
-    for ax, v in zip(axs.flat, to_plot):
-        title, field, tp = v
-        ax.set_title(title)
-        ax.grid()
-        if tp == 'scatter':
-            ax.scatter(z, field, marker='.')
-            ax.plot(z, poly[0]*z+poly[1])
-            ax.sharex(axs[0])
-        elif tp == 'plot':
-            ax.plot(z, field)
-            ax.plot(z, poly[0]*z+poly[1])
-            ax.sharex(axs[0])
-        elif tp == 'plot2':
-            ax.plot(jnp.linspace(0, z1, n), field)
-            ax.sharex(axs[0])
-        elif tp == 'loglog':
-            x = field[0]
-            ax.loglog(x, field[1], alpha=0.7)
-    fig.tight_layout()
-    plt.show()
+        post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
+        corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
+        if run == 'rough_func':
+            sigma_sq = jft.mean(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
+        elif run == 'exp(cf)':
+            sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
+        elif run == 'cf':
+            sigma_sq = jft.mean(tuple(correlated_field(s) for s in samples))
+        post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
+        grid_ = correlated_field.target_grids[0]
+
+        to_plot = [ ("Data", v2, 'scatter'), 
+                    ("Reconstruction", post_sr_mean, 'plot'), 
+                    ("Correlated Field", corrfield, 'plot2'),
+                    ('Sigma_sq', sigma_sq, 'plot2'),
+                    ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
+                                            post_a_mean), "loglog")]
+
+        fig, axs = plt.subplots(5, 1, figsize=(20, 20))
+        for ax, v in zip(axs.flat, to_plot):
+            title, field, tp = v
+            ax.set_title(title)
+            ax.grid()
+            if tp == 'scatter':
+                ax.scatter(z, field, marker='.')
+                ax.plot(z, poly[0]*z+poly[1])
+                ax.sharex(axs[0])
+            elif tp == 'plot':
+                ax.plot(z, field)
+                ax.plot(z, poly[0]*z+poly[1])
+                ax.sharex(axs[0])
+            elif tp == 'plot2':
+                ax.plot(jnp.linspace(0, z1, n), field)
+                ax.sharex(axs[0])
+            elif tp == 'loglog':
+                x = field[0]
+                ax.loglog(x, field[1], alpha=0.7)
+        fig.tight_layout()
+        plt.show()
