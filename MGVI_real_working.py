@@ -34,8 +34,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 200.
-z1 = 1200.
+z2 = 600.
+z1 = 1800.
 z3 = 5000.
 interval = 'both'
 
@@ -347,5 +347,5 @@ for ax, v in zip(axs.flat, to_plot):
         ax.plot(grid, field[0]-field[1], alpha=0.5)
         ax.sharex(axs[0])
 fig.tight_layout()
-fig.savefig(f'Plots/corrfield_{am_min:.0f}{am_max:.0f}_{run}{label}_{z1:.0f}.png')
+fig.savefig(f'Plots/corrfield_{am_min:.0f}{am_max:.0f}_{run}{label}_{z2:.0f}_{z1:.0f}.png')
 plt.show()
