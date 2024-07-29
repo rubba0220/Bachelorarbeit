@@ -32,14 +32,14 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 5
-am_max = 6
-z2 = 700.
-z1 = 1800.
+am_min = 6.724
+am_max = 7.400
+z2 = 120.
+z1 = 1200.
 z3 = 5000.
 interval = 'both'
 
-poly = np.loadtxt(f'real data/poly_{am_min}{am_max}.txt')
+poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly2 = (10./1200., 17.)
 # run = 'cf'
 # run = 'exp(cf)'
@@ -48,7 +48,7 @@ run = 'rough_func'
 label = 'fit'
 # label = 'read'
 
-bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
+bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -98,8 +98,8 @@ if run == 'rough_func':
         b_poly = jft.LogNormalPrior(poly2[1], 0.5*poly2[1], name="b_steig", shape=(1,))
 
 ''' Data '''
-data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
-df_v2 = pd.read_csv(f'real data/v2_{am_min:.0f}{am_max:.0f}.txt')
+data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
+df_v2 = pd.read_csv(f'real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 v2 = jnp.array(df_v2["v2"].values)
 sorted_indices = jnp.argsort(z_v2)
@@ -321,11 +321,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data6/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data6/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data6/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data6/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data6/cf_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'real data new intervals/rho_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data new intervals/rd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data new intervals/sigma_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data new intervals/sd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfcf.to_csv(f'real data new intervals/cf_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
