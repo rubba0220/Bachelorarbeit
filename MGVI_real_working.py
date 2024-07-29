@@ -33,11 +33,11 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
 am_min = 5
-am_max = 7
-z2 = 200.
-z1 = 1600.
+am_max = 6
+z2 = 700.
+z1 = 1800.
 z3 = 5000.
-interval = 'pos'
+interval = 'both'
 
 poly = np.loadtxt(f'real data/poly_{am_min}{am_max}.txt')
 poly2 = (10./1200., 17.)
@@ -78,7 +78,7 @@ if run == 'exp(cf)':
                     asperity=(1e-3, 1e-16),)
 
 if run == 'rough_func':
-    cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5)) #1 bei allen vor 6-7 both
+    cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #1 bei allen vor 6-7 both #0.5 bei allen vor 5-6 both 700-1800
     cf_fl = dict(   fluctuations=(1., 1.), 
                     loglogavgslope=(-5., 2.),
                     flexibility=(1e-3, 1e-16),
