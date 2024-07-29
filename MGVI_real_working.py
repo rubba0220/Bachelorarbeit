@@ -33,11 +33,11 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
 am_min = 5
-am_max = 6
-z2 = 700.
-z1 = 1800.
+am_max = 7
+z2 = 200.
+z1 = 1600.
 z3 = 5000.
-interval = 'neg'
+interval = 'pos'
 
 poly = np.loadtxt(f'real data/poly_{am_min}{am_max}.txt')
 poly2 = (10./1200., 17.)
