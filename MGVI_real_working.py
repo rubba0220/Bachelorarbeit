@@ -34,19 +34,19 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 5
 am_max = 6
-z2 = 600.
+z2 = 700.
 z1 = 1800.
 z3 = 5000.
-interval = 'both'
+interval = 'neg'
 
-poly = np.loadtxt(f'real data/poly_57.txt')
+poly = np.loadtxt(f'real data/poly_{am_min}{am_max}.txt')
 poly2 = (10./1200., 17.)
 # run = 'cf'
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
-# label = 'fit'
-label = 'read'
+label = 'fit'
+# label = 'read'
 
 bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 
@@ -78,9 +78,9 @@ if run == 'exp(cf)':
                     asperity=(1e-3, 1e-16),)
 
 if run == 'rough_func':
-    cf_zm = dict(offset_mean=0., offset_std=(1., 1.))
+    cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5)) #1 bei allen vor 6-7 both
     cf_fl = dict(   fluctuations=(1., 1.), 
-                    loglogavgslope=(-3., 3.),
+                    loglogavgslope=(-5., 2.),
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
 
@@ -99,19 +99,27 @@ if run == 'rough_func':
 
 ''' Data '''
 data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
-if interval == 'pos':
-    data = data[i2:i1] 
-elif interval == 'neg':
-    data = np.flip(data)[i2:i1]
-elif interval == 'both':
-    data = np.flip(data)[i2:i1] + data[i2:i1]
-
-df_v2 = pd.read_csv(f'real data/v2_57.txt')
+df_v2 = pd.read_csv(f'real data/v2_{am_min:.0f}{am_max:.0f}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 v2 = jnp.array(df_v2["v2"].values)
 sorted_indices = jnp.argsort(z_v2)
 z_v2 = z_v2[sorted_indices]
 v2 = v2[sorted_indices]
+vel_pos = np.where(z_v2>=0)
+vel_neg = np.where(z_v2<0)
+
+if interval == 'pos':
+    data = data[i2:i1]
+    z_v2 = z_v2[vel_pos]
+    v2 = v2[vel_pos]
+elif interval == 'neg':
+    data = np.flip(data)[i2:i1]
+    z_v2 = abs(z_v2[vel_neg])
+    v2 = v2[vel_neg]
+elif interval == 'both':
+    data = np.flip(data)[i2:i1] + data[i2:i1]
+    z_v2 = abs(z_v2)
+    v2 = v2
 
 ''' Forward Model '''
 norm = jnp.sum(data)
@@ -158,7 +166,6 @@ class ForwardModel(jft.Model):
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
-            # vdfo_norm_calc, z = util_old.vdfo_norm(z2, z1, zs, uz, n, poly)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
 
@@ -314,11 +321,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data5/rho_{am_min:.0f}{am_max:.0f}_{run}{label}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data5/rd_{am_min:.0f}{am_max:.0f}_{run}{label}.csv', mode='a', header=False)
-dfs.to_csv(f'real data5/sigma_{am_min:.0f}{am_max:.0f}_{run}{label}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data5/sd_{am_min:.0f}{am_max:.0f}_{run}{label}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data5/cf_{am_min:.0f}{am_max:.0f}_{run}{label}.csv', mode='a', header=False)
+dfr.to_csv(f'real data6/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data6/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data6/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data6/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+dfcf.to_csv(f'real data6/cf_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
@@ -347,5 +354,5 @@ for ax, v in zip(axs.flat, to_plot):
         ax.plot(grid, field[0]-field[1], alpha=0.5)
         ax.sharex(axs[0])
 fig.tight_layout()
-fig.savefig(f'Plots/corrfield_{am_min:.0f}{am_max:.0f}_{run}{label}_{z2:.0f}_{z1:.0f}.png')
+#fig.savefig(f'Plots/corrfield_{am_min:.0f}{am_max:.0f}_{run}{label}_{z2:.0f}_{z1:.0f}.png')
 plt.show()
