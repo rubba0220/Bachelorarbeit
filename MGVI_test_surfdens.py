@@ -97,7 +97,7 @@ def test_mgvi(s):
     noise_cov_inv = lambda x: 1. / 16. * x
 
     key, subkey = random.split(key)
-    noise_truth = ((noise_cov(jft.ones_like((fwd.target)['sd']))) ** 0.5) * jft.random_like(key, (fwd.target)['sd'])
+    noise_truth = ((noise_cov(jft.ones_like((fwd.target)['sd']))) ** 0.5) * jft.random_like(key, (fwd.target)['sd']) #hier wurde leider key doppelt benutzt: eigentlich sollte es subkey sein
     sd_truth = sd_truth + noise_truth
     
     print('Surface density truth: ', sd_truth, noise_truth)
