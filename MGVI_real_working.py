@@ -32,12 +32,15 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 6.724
-am_max = 7.400
-z2 = 120.
-z1 = 1200.
+am_min = 6.000
+am_max = 6.724
+# am_min = 6.724
+# am_max = 7.400
+z2 = 550.
+z1 = 1800.
 z3 = 5000.
-interval = 'both'
+name = 'n:new params '
+interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly2 = (10./1200., 17.)
@@ -78,9 +81,9 @@ if run == 'exp(cf)':
                     asperity=(1e-3, 1e-16),)
 
 if run == 'rough_func':
-    cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #1 bei allen vor 6-7 both #0.5 bei allen vor 5-6 both 700-1800
-    cf_fl = dict(   fluctuations=(1., 1.), 
-                    loglogavgslope=(-5., 2.),
+    cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5))
+    cf_fl = dict(   fluctuations=(1., 1.),
+                    loglogavgslope=(-3., 0.5),
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
 
@@ -123,7 +126,7 @@ elif interval == 'both':
 
 ''' Forward Model '''
 norm = jnp.sum(data)
-string = f'z2:{z2} z1:{z1} norm:sum vel:poly data:{interval}'
+string = f'z2:{z2} z1:{z1} data:{interval}'
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -261,7 +264,7 @@ meanr = [results[f'rho{k+1}'][0] for k in range(15)]
 stdr = [results[f'rho{k+1}'][1] for k in range(15)] 
 
 data_rho = {
-    "Run": [f'rho_{k+1} ' + string for k in range(15)],
+    "Run": [name + f'rho_{k+1} ' + string for k in range(15)],
     "Inferred Value rho": meanr,
     "Standard Deviation rho": stdr,
     "Samples rho": [results[f'rhos{k+1}'] for k in range(15)]
@@ -271,7 +274,7 @@ meanrd = [results['rhodm'][0]]
 stdrd = [results['rhodm'][1]]
 
 data_rd = { 
-    "Run": [f'rho_dm ' + string],
+    "Run": [name + f'rho_dm ' + string],
     "Inferred Value rho": meanrd,
     "Standard Deviation rho": stdrd,
     "Samples rho": [results['rhosdm']]
@@ -281,7 +284,7 @@ means = [results[f'sigma{k+1}'][0] for k in range(15)]
 stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
 data_sigma = {
-    "Run": [f'sigma_{k+1} ' + string for k in range(15)],
+    "Run": [name + f'sigma_{k+1} ' + string for k in range(15)],
     "Inferred Value sigma": means,
     "Standard Deviation sigma": stds,
     "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)]
@@ -291,14 +294,14 @@ meansd = [results['surfd'][0]]
 stdsd = [results['surfd'][1]]
 
 data_sd = {
-    "Run": ['surfdens ' + string],
+    "Run": [name + 'surfdens ' + string],
     "Inferred Value sd": meansd,
     "Standard Deviation sd": stdsd,
     "Samples sd": [results['surfds']],
 }
 
 data_cf = {
-    "Run": ['corrfield ' + string],
+    "Run": [name + 'corrfield ' + string],
     "Data": [v2],
     "Inferred Value cf": [corrfield[0]],
     "Standard Deviation cf": [corrfield[1]],

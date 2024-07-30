@@ -12,32 +12,39 @@ import util_working
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_debug_nans", False)
 
+''' Domain '''
+# am_min = 6.0
+# am_max = 6.724
+am_min = 6.724
+am_max = 7.4
+z1 = 1800
+n = int(z1)+1
+
 ''' Data '''
-df = pd.read_csv("real data/v2_57.txt")
-z = jnp.array(df["z"].values)
+df = pd.read_csv(f"real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt")
+z = abs(jnp.array(df["z"].values))
 sorted_indices = jnp.argsort(z)
 z = z[sorted_indices]
 print('Größtes z in Geschwindigkeitsdaten: ', max(z))
 v2 = jnp.array(df["v2"].values)
 v2 = v2[sorted_indices]
-poly = np.loadtxt(f'real data/poly_57.txt')
+poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
-# rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
-# label = 'fit'
-rough_func = (17. + 10./1200. * jnp.linspace(0, z1, n) )**2
-label = 'read'
+''' Run '''
+run = 'rough_func'
+rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
+label = 'fit'
+# rough_func = (17. + 10./1200. * jnp.linspace(0, z1, n) )**2
+# label = 'read'
 # rough_func = 450. + 400./1000. * jnp.linspace(0, z1, n)
 # label = 'read2'
-# run = 'cf'
 # run = 'exp(cf)'
-run = 'rough_func'
+# run = 'cf'
 
 inference = True
+# seeds = [42]
+seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]
 
-z1 = 1800
-n = int(z1)+1
-
-seeds = [42]#, 12 , 34, 56, 78, 93, 102, 400, 234]
 for s in seeds:
     seed = s
     key = random.PRNGKey(seed)
@@ -46,9 +53,9 @@ for s in seeds:
     dims = (n, )
 
     if run == 'rough_func':
-        cf_zm = dict(offset_mean=0., offset_std=(1., 1.))
+        cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5))
         cf_fl = dict(   fluctuations=(1., 1.),
-                        loglogavgslope=(-3., 3.),
+                        loglogavgslope=(-3., 0.5),
                         flexibility=(1e-3, 1e-16),
                         asperity=(1e-3, 1e-16),)
     elif run == 'exp(cf)':
@@ -160,6 +167,7 @@ for s in seeds:
                     ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
                                             post_a_mean), "loglog")]
 
+        ''' Plot '''
         fig, axs = plt.subplots(5, 1, figsize=(20, 20))
         for ax, v in zip(axs.flat, to_plot):
             title, field, tp = v
@@ -184,18 +192,20 @@ for s in seeds:
                 x = field[0]
                 ax.loglog(x, field[1], alpha=0.7)
         fig.tight_layout()
-        if run == 'rough_func':
-            fig.savefig(f'Plots/corrfield_rough_func_{label}.png')
-        elif run == 'exp(cf)':
-            fig.savefig(f'Plots/corrfield_exp_cf.png')
-        elif run == 'cf':
-            fig.savefig(f'Plots/corrfield_cf.png')
+        # if run == 'rough_func':
+        #     fig.savefig(f'Plots/corrfield_rough_func_{label}.png')
+        # elif run == 'exp(cf)':
+        #     fig.savefig(f'Plots/corrfield_exp_cf.png')
+        # elif run == 'cf':
+        #     fig.savefig(f'Plots/corrfield_cf.png')
         plt.show()
     
     else:
+        ''' Sampling '''
         key, subkey = random.split(key)
         samples = [jft.random_like(subkey, signal_response.domain)]
 
+        ''' Auswertung'''
         post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
         corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
         if run == 'rough_func':
@@ -214,6 +224,7 @@ for s in seeds:
                     ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
                                             post_a_mean), "loglog")]
 
+        ''' Plot '''
         fig, axs = plt.subplots(5, 1, figsize=(20, 20))
         for ax, v in zip(axs.flat, to_plot):
             title, field, tp = v
