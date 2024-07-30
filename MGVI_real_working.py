@@ -39,7 +39,7 @@ am_max = 6.724
 z2 = 550.
 z1 = 1800.
 z3 = 5000.
-name = 'n:new params '
+name = 'n:newparams '
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
