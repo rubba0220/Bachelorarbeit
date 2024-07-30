@@ -36,10 +36,11 @@ am_min = 6.000
 am_max = 6.724
 # am_min = 6.724
 # am_max = 7.400
-z2 = 550.
-z1 = 1800.
+z2 = 150.
+z1 = 1000.
 z3 = 5000.
-name = 'n:newparams '
+name = 'n:newerparams ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -80,10 +81,10 @@ if run == 'exp(cf)':
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
 
-if run == 'rough_func':
-    cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5))
-    cf_fl = dict(   fluctuations=(1., 1.),
-                    loglogavgslope=(-3., 0.5),
+if run == 'rough_func':                                 #old #new #newer(seeds)
+    cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #0.3/0.3 #0.5/0.5 #0.3/0.3
+    cf_fl = dict(   fluctuations=(0.5, 0.3), #1/1 #1/1 #0.5/0.3
+                    loglogavgslope=(-3., 0.5), #-5/2 #-3/0.5 #-3/0.5
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
 
@@ -94,8 +95,8 @@ correlated_field = cfm.finalize()
 
 if run == 'rough_func':
     if label == 'fit':
-        m_poly = jft.LogNormalPrior(poly[0], 0.5*poly[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly[1], 0.5*poly[1], name="b_steig", shape=(1,))
+        m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
+        b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
     elif label == 'read':
         m_poly = jft.LogNormalPrior(poly2[0], 0.5*poly2[0], name="m_steig", shape=(1,))
         b_poly = jft.LogNormalPrior(poly2[1], 0.5*poly2[1], name="b_steig", shape=(1,))
@@ -193,7 +194,6 @@ n_vi_iterations = 6
 delta = 1e-4
 n_samples = 10 #mit 4 funkrioniert es bei 1600
 
-seed = 42
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
 # pos_truth = jft.random_like(subkey, fwd.domain)
