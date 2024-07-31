@@ -414,13 +414,13 @@ def surf_dens(term, where):
 # print(49.4, '+-', 4.6)
 
 uz_test, zs_test = u2.Solver(0.003, params, points)
-# uz_test2, zs_test2 = u2.Solver(0.03, 1.1*params, points)
+uz_test2, zs_test2 = u2.Solver(0.003, 0.9*params, points)
 
 term_test = jnp.array([term(params, u) for u in uz_test])
-# term_test2 = jnp.array([term(1.1*params, u) for u in uz_test2])
+term_test2 = jnp.array([term(0.9*params, u) for u in uz_test2])
 
 y_test = jnp.array([surf_dens(term_test, where) for where in wheres])
-# y_test2 = jnp.array([surf_dens(term_test2, where) for where in wheres])
+y_test2 = jnp.array([surf_dens(term_test2, where) for where in wheres])
 
 fig, ax = plt.subplots(2, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [1,1]})
 plt.title('Surface density')
@@ -432,13 +432,14 @@ ax[0].axhline(49.4, color='black', linestyle='--')
 ax[0].fill_between(points, 49.4-4.6,49.4+4.6, color='gray', alpha=0.2, label=rf'$\Sigma = (49.4 \pm 4.6) M_{{\odot}}pc^{-2}$')
 
 x = jnp.array([points[where] for where in wheres])
-ax[0].scatter(x, y_test, label='Test', marker='o', color='tab:blue')
-# ax[0].scatter(x, y_test2, label='Test [0.8]', marker='o', color='tab:cyan')
+plt.figtext(0.8, 0.4, rf'$\rho_{{dm}} = 0.003 M_{{\odot}}pc^{{-3}}$')
+ax[0].scatter(x, y_test, label=rf'$\rho_{{s}}$ prior mean', marker='o', color='tab:blue')
+ax[0].scatter(x, y_test2, label=rf'$\rho_{{s}}$ $0.8\cdot$prior mean', marker='o', color='tab:cyan')
 
 
 i = 49
 ax[1].scatter(x[18:], y_test[18:]-surf_dens(term_test, wheres[-1]), marker='o', color='tab:blue')
-# ax[1].scatter(x[13:], y_test2[13:]-surf_dens(term_test2, wheres[-1]), marker='o', color='tab:cyan')
+ax[1].scatter(x[13:], y_test2[13:]-surf_dens(term_test2, wheres[-1]), marker='o', color='tab:cyan')
 
 ax[0].axvline(x[i], color='black', linestyle='--', label=f'z = {x[i]} pc')
 ax[1].axvline(x[i], color='black', linestyle='--')
