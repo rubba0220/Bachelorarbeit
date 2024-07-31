@@ -172,11 +172,14 @@ def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=
 
 # Auswertung2('finale tests/rhos_vdfo_uniform.csv', 'finale tests/sigma_vdfo_uniform.csv', 'finale tests/rhodm_vdfo_uniform.csv', name='Uniforme Verteilung', save=False)
 
+
+
+
 # Auswertung2('finale tests/rhos_vdfo.csv', 'finale tests/sigma_vdfo.csv', 'finale tests/rhodm_vdfo.csv', name='density fall off', save=True, ind=[51,101])
 
 # Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='density fall off (histogram)', save=True, ind=[101])
 
-Auswertung2('finale tests/rhos_surfdens.csv', 'finale tests/sigma_surfdens.csv', 'finale tests/rhodm_surfdens.csv', 'finale tests/sd_surfdens.csv', name='surface density', save=True)
+# Auswertung2('finale tests/rhos_surfdens.csv', 'finale tests/sigma_surfdens.csv', 'finale tests/rhodm_surfdens.csv', 'finale tests/sd_surfdens.csv', name='surface density', save=True)
 
 
 

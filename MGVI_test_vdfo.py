@@ -90,100 +90,102 @@ def test_mgvi(s):
     fig, ax = plt.subplots(figsize=(20,10))
     ax.set_xlabel('z/pc')
     ax.set_ylabel('$\\nu / \\nu_0 $')
-    ax.scatter(z, data, marker='o')
+    ax.scatter(z, data, marker='.')
     ax.grid()
+    plt.figtext(0.8, 0.9, rf'$\rho_{{dm}}\approx{rho_dm(pos_truth)[0]:.3f} M_{{sun}}pc^{-3}$', fontsize=24)
+    plt.figtext(0.8, 0.85, rf'$\rho_s\approx{jnp.sum(rho_s(pos_truth)):.3f} M_{{sun}}pc^{-3}$', fontsize=24)
     fig.tight_layout()
     plt.show()
 
     lh = jft.Gaussian(data, noise_cov_inv).amend(fwd)
 
-    n_vi_iterations = 6
-    delta = 1e-4
-    n_samples = 10
+    # n_vi_iterations = 6
+    # delta = 1e-4
+    # n_samples = 10
 
-    key, k_i, k_o = random.split(key, 3)
-    samples, state = jft.optimize_kl(
-        lh,
-        jft.Vector(lh.init(k_i)),
-        n_total_iterations=n_vi_iterations,
-        n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
-        key=k_o,
-        draw_linear_kwargs=dict(
-            cg_name="SL",
-            cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
-        ),
-        nonlinearly_update_kwargs=dict(
-            minimize_kwargs=dict(
-                name="SN",
-                xtol=delta,
-                cg_kwargs=dict(name=None),
-                maxiter=5,
-            )
-        ),
-        kl_kwargs=dict(
-            minimize_kwargs=dict(
-                name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
-            )
-        ),
-        sample_mode="nonlinear_resample",
-        odir="./results_test",
-        resume=False,
-    )
+    # key, k_i, k_o = random.split(key, 3)
+    # samples, state = jft.optimize_kl(
+    #     lh,
+    #     jft.Vector(lh.init(k_i)),
+    #     n_total_iterations=n_vi_iterations,
+    #     n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+    #     key=k_o,
+    #     draw_linear_kwargs=dict(
+    #         cg_name="SL",
+    #         cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+    #     ),
+    #     nonlinearly_update_kwargs=dict(
+    #         minimize_kwargs=dict(
+    #             name="SN",
+    #             xtol=delta,
+    #             cg_kwargs=dict(name=None),
+    #             maxiter=5,
+    #         )
+    #     ),
+    #     kl_kwargs=dict(
+    #         minimize_kwargs=dict(
+    #             name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+    #         )
+    #     ),
+    #     sample_mode="nonlinear_resample",
+    #     odir="./results_test",
+    #     resume=False,
+    # )
 
-    ''' Results '''
-    results = {}
+    # ''' Results '''
+    # results = {}
 
-    for k in range(15):
-        exec(f'results["rhos{k+1}"] = tuple(rho_s(s)[{k}].tolist() for s in samples)')
-        exec(f'results["sigmas{k+1}"] = tuple(sigma_s(s)[{k}].tolist() for s in samples)')
-        exec(f'results["rho{k+1}"] = jft.mean_and_std(results["rhos{k+1}"])')
-        exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
-    results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
-    results["rhodm"] = jft.mean_and_std(results["rhosdm"])
+    # for k in range(15):
+    #     exec(f'results["rhos{k+1}"] = tuple(rho_s(s)[{k}].tolist() for s in samples)')
+    #     exec(f'results["sigmas{k+1}"] = tuple(sigma_s(s)[{k}].tolist() for s in samples)')
+    #     exec(f'results["rho{k+1}"] = jft.mean_and_std(results["rhos{k+1}"])')
+    #     exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
+    # results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
+    # results["rhodm"] = jft.mean_and_std(results["rhosdm"])
 
-    truthr = [*rho_s(pos_truth)]
-    meanr = [results[f'rho{k+1}'][0] for k in range(15)]
-    stdr = [results[f'rho{k+1}'][1] for k in range(15)]
+    # truthr = [*rho_s(pos_truth)]
+    # meanr = [results[f'rho{k+1}'][0] for k in range(15)]
+    # stdr = [results[f'rho{k+1}'][1] for k in range(15)]
 
-    data_rho = {
-        "True Value rho": truthr,
-        "Inferred Value rho": meanr,
-        "Standard Deviation rho": stdr,
-        "Samples rho": [results[f'rhos{k+1}'] for k in range(15)],
-        "Abweichung rho": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
-    }
+    # data_rho = {
+    #     "True Value rho": truthr,
+    #     "Inferred Value rho": meanr,
+    #     "Standard Deviation rho": stdr,
+    #     "Samples rho": [results[f'rhos{k+1}'] for k in range(15)],
+    #     "Abweichung rho": list((jnp.array(truthr) - jnp.array(meanr))/jnp.array(stdr))
+    # }
 
-    truthrd = [*rho_dm(pos_truth)]
-    meanrd = [results['rhodm'][0]]
-    stdrd = [results['rhodm'][1]]
+    # truthrd = [*rho_dm(pos_truth)]
+    # meanrd = [results['rhodm'][0]]
+    # stdrd = [results['rhodm'][1]]
 
-    data_rd = { 
-        "True Value rho": truthrd,
-        "Inferred Value rho": meanrd,
-        "Standard Deviation rho": stdrd,
-        "Samples rho": [results['rhosdm']],
-        "Abweichung rho": list((jnp.array(truthrd) - jnp.array(meanrd))/jnp.array(stdrd))
-    }
+    # data_rd = { 
+    #     "True Value rho": truthrd,
+    #     "Inferred Value rho": meanrd,
+    #     "Standard Deviation rho": stdrd,
+    #     "Samples rho": [results['rhosdm']],
+    #     "Abweichung rho": list((jnp.array(truthrd) - jnp.array(meanrd))/jnp.array(stdrd))
+    # }
 
-    truths = [*sigma_s(pos_truth)]
-    means = [results[f'sigma{k+1}'][0] for k in range(15)]
-    stds = [results[f'sigma{k+1}'][1] for k in range(15)]
+    # truths = [*sigma_s(pos_truth)]
+    # means = [results[f'sigma{k+1}'][0] for k in range(15)]
+    # stds = [results[f'sigma{k+1}'][1] for k in range(15)]
 
-    data_sigma = {
-        "True Value sigma": truths,
-        "Inferred Value sigma": means,
-        "Standard Deviation sigma": stds,
-        "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
-        "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
-    }
+    # data_sigma = {
+    #     "True Value sigma": truths,
+    #     "Inferred Value sigma": means,
+    #     "Standard Deviation sigma": stds,
+    #     "Samples sigma": [results[f'sigmas{k+1}'] for k in range(15)],
+    #     "Abweichung sigma": list((jnp.array(truths) - jnp.array(means))/jnp.array(stds))
+    # }
 
-    dfr = pd.DataFrame(data_rho)
-    dfrd = pd.DataFrame(data_rd)
-    dfs = pd.DataFrame(data_sigma)
+    # dfr = pd.DataFrame(data_rho)
+    # dfrd = pd.DataFrame(data_rd)
+    # dfs = pd.DataFrame(data_sigma)
 
-    dfr.to_csv(f'finale tests/rhos_vdfo.csv', mode='a', header=False, index=False)
-    dfrd.to_csv(f'finale tests/rhodm_vdfo.csv', mode='a', header=False, index=False)
-    dfs.to_csv(f'finale tests/sigma_vdfo.csv', mode='a', header=False, index=False)
+    # dfr.to_csv(f'finale tests/rhos_vdfo.csv', mode='a', header=False, index=False)
+    # dfrd.to_csv(f'finale tests/rhodm_vdfo.csv', mode='a', header=False, index=False)
+    # dfs.to_csv(f'finale tests/sigma_vdfo.csv', mode='a', header=False, index=False)
 
 seed = 100000
 key = random.PRNGKey(seed)
