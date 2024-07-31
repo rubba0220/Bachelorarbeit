@@ -335,14 +335,23 @@ n3_ = int(z3_/dz3_+1)
 import util_with_inter as u2
 importlib.reload(u2)
 points = jnp.unique(jnp.append(jnp.linspace(0, z3_, n3_), jnp.linspace(0, z1_, n1_)))
-uz_paper, zs_paper = u2.Solver(rho_dm, params, points)
-uz_SHM, zs_SHM = u2.Solver(rho_dm_SHM, params, points)
+wheres = [list(points).index(element) for element in jnp.unique(jnp.append(jnp.arange(100, z3_, 100), jnp.arange(z3_, z1_, 100)))]
+
+# uz_paper, zs_paper = u2.Solver(rho_dm, params, points)
+# uz_paper2, zs_paper2 = u2.Solver(rho_dm, 1.15*params, points)
+# uz_SHM, zs_SHM = u2.Solver(rho_dm_SHM, params, points)
+# uz_SHM2, zs_SHM2 = u2.Solver(rho_dm_SHM, 1.15*params, points)
 
 def term(params, u):
     return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
 
-term_paper = jnp.array([term(params, u) for u in uz_paper])
-term_SHM = jnp.array([term(params, u) for u in uz_SHM])
+def surf_dens(term, where):
+    return 2*jnp.sum(term[:where]*(points[1:where+1]-points[:where]))
+
+# term_paper = jnp.array([term(params, u) for u in uz_paper])
+# term_paper2 = jnp.array([term(1.15*params, u) for u in uz_paper2])
+# term_SHM = jnp.array([term(params, u) for u in uz_SHM])
+# term_SHM2 = jnp.array([term(1.15*params, u) for u in uz_SHM2])
 
 # ''' Visualisation '''
 # fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
@@ -365,6 +374,54 @@ term_SHM = jnp.array([term(params, u) for u in uz_SHM])
 # fig.subplots_adjust(hspace=0.0)
 
 
+# fig, ax = plt.subplots(2, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [1,1]})
+# plt.title('Surface density')
+# ax[0].set_xlabel('z/pc')
+# ax[0].set_ylabel('surface density / $M_{\odot}pc^{-2}$')
+# ax[1].set_xlabel('z/pc')
+# ax[1].set_ylabel(' systematic error / $M_{\odot}pc^{-2}$')
+# ax[0].axhline(49.4, color='black', linestyle='--')
+# ax[0].fill_between(points, 49.4-4.6,49.4+4.6, color='gray', alpha=0.2, label=rf'$\Sigma = (49.4 \pm 4.6) M_{{\odot}}pc^{-2}$')
+
+# x = jnp.array([points[where] for where in wheres])
+# y_paper = jnp.array([surf_dens(term_paper, where) for where in wheres])
+# y_paper2 = jnp.array([surf_dens(term_paper2, where) for where in wheres])
+# y_SHM = jnp.array([surf_dens(term_SHM, where) for where in wheres])
+# y_SHM2 = jnp.array([surf_dens(term_SHM2, where) for where in wheres])
+# ax[0].scatter(x, y_paper, label='Paper [1]', marker='o', color='tab:blue')
+# ax[0].scatter(x, y_paper2, label='Paper [1.15]', marker='o', color='tab:cyan')
+# ax[0].scatter(x, y_SHM, label='SHM', marker='x', color='tab:orange')
+# ax[0].scatter(x, y_SHM2, label='SHM [1.15]', marker='x', color='orange')
+
+# i = 49
+# ax[1].scatter(x[13:], y_paper[13:]-surf_dens(term_paper, wheres[-1]), marker='o', color='tab:blue')
+# ax[1].scatter(x[13:], y_paper2[13:]-surf_dens(term_paper2, wheres[-1]), marker='o', color='tab:cyan')
+# ax[1].scatter(x[20:], y_SHM[20:]-surf_dens(term_SHM, wheres[-1]), marker='x', color='tab:orange')
+# ax[1].scatter(x[20:], y_SHM2[20:]-surf_dens(term_SHM2, wheres[-1]), marker='x', color='orange')
+# ax[0].axvline(x[i], color='black', linestyle='--', label=f'z = {x[i]} pc')
+# ax[1].axvline(x[i], color='black', linestyle='--')
+
+# ax[0].grid()
+# ax[1].grid(which='both')
+# ax[0].legend()
+# ax[1].legend()
+# #ax[1].set_yscale('log')
+# fig.tight_layout()
+# fig.subplots_adjust(hspace=0.0)
+
+# print( 2 * jnp.sum(term_paper[:-1] * (points[1:]-points[:-1])) )
+# print( 2 * jnp.sum(term_SHM[:-1] * (points[1:]-points[:-1])) )
+# print(49.4, '+-', 4.6)
+
+uz_test, zs_test = u2.Solver(0.003, params, points)
+# uz_test2, zs_test2 = u2.Solver(0.03, 1.1*params, points)
+
+term_test = jnp.array([term(params, u) for u in uz_test])
+# term_test2 = jnp.array([term(1.1*params, u) for u in uz_test2])
+
+y_test = jnp.array([surf_dens(term_test, where) for where in wheres])
+# y_test2 = jnp.array([surf_dens(term_test2, where) for where in wheres])
+
 fig, ax = plt.subplots(2, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [1,1]})
 plt.title('Surface density')
 ax[0].set_xlabel('z/pc')
@@ -374,20 +431,15 @@ ax[1].set_ylabel(' systematic error / $M_{\odot}pc^{-2}$')
 ax[0].axhline(49.4, color='black', linestyle='--')
 ax[0].fill_between(points, 49.4-4.6,49.4+4.6, color='gray', alpha=0.2, label=rf'$\Sigma = (49.4 \pm 4.6) M_{{\odot}}pc^{-2}$')
 
-def surf_dens(term, where):
-    return 2*jnp.sum(term[:where]*(points[1:where+1]-points[:where]))
-
-wheres = [list(points).index(element) for element in jnp.unique(jnp.append(jnp.arange(100, z3_, 100), jnp.arange(z3_, z1_, 100)))]
-
 x = jnp.array([points[where] for where in wheres])
-y_paper = jnp.array([surf_dens(term_paper, where) for where in wheres])
-y_SHM = jnp.array([surf_dens(term_SHM, where) for where in wheres])
-ax[0].scatter(x, y_paper, label='Paper', marker='o')
-ax[0].scatter(x, y_SHM, label='SHM', marker='x')
+ax[0].scatter(x, y_test, label='Test', marker='o', color='tab:blue')
+# ax[0].scatter(x, y_test2, label='Test [0.8]', marker='o', color='tab:cyan')
+
 
 i = 49
-ax[1].scatter(x[13:], y_paper[13:]-surf_dens(term_paper, wheres[-1]), marker='o')
-ax[1].scatter(x[20:], y_SHM[20:]-surf_dens(term_SHM, wheres[-1]), marker='x')
+ax[1].scatter(x[18:], y_test[18:]-surf_dens(term_test, wheres[-1]), marker='o', color='tab:blue')
+# ax[1].scatter(x[13:], y_test2[13:]-surf_dens(term_test2, wheres[-1]), marker='o', color='tab:cyan')
+
 ax[0].axvline(x[i], color='black', linestyle='--', label=f'z = {x[i]} pc')
 ax[1].axvline(x[i], color='black', linestyle='--')
 
@@ -399,7 +451,3 @@ ax[1].legend()
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
 plt.savefig('Plots/surface_density.png')
-
-# print( 2 * jnp.sum(term_paper[:-1] * (points[1:]-points[:-1])) )
-# print( 2 * jnp.sum(term_SHM[:-1] * (points[1:]-points[:-1])) )
-# print(49.4, '+-', 4.6)
