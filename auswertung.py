@@ -40,7 +40,7 @@ def linreg(x,y,ey,ini=[1,1]):
 
 
 
-def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chiq, name='', save=False, regression=True, residue=True, mean=True):
+def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v_s_y, m, b, chiq, name='', save=False, pfad=None, regression=True, residue=True, mean=True, ind=None):
     
     if residue:
         fig, axarray = plt.subplots(2, 1, figsize=(20,10), sharex=True, gridspec_kw={'height_ratios': [5, 2]})
@@ -49,7 +49,10 @@ def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v
         axarray[1].set_ylabel('$residue$/{0}'.format(unit_y))
         axarray[1].axhline(y=0., color='black', linestyle='--')
         axarray[1].errorbar(v_x, v_y-(m*v_x+b), yerr=sigmaRes, color='red', fmt='o', markeredgecolor='red')
-        ymax = max([abs(x) for x in axarray[1].get_ylim()])
+        if ind != None:
+            ymax = 2*max([abs(x) for x in np.delete(v_y-(m*v_x+b), ind)])
+        else:
+            ymax = max([abs(x) for x in axarray[1].get_ylim()])
         axarray[1].set_ylim(-ymax, ymax)
         axarray[1].grid()
     else: 
@@ -58,9 +61,13 @@ def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v
 
     plt.title(name)
     axarray[0].errorbar(v_x, v_y, xerr=v_s_x, yerr=v_s_y, color='red', fmt='o', markeredgecolor='red', label='test run results')
+    if ind != None:
+        blue_shades = ['blue','darkblue','navy','midnightblue', 'deepskyblue','dodgerblue','cornflowerblue','royalblue','mediumblue']
+        for i in range(len(ind)):
+            axarray[0].errorbar(v_x[ind[i]], v_y[ind[i]], xerr=0, yerr=v_s_y[ind[i]], color=blue_shades[i], fmt='o', markeredgecolor=blue_shades[i])
     axarray[0].set_xlabel('{0} / {1}'.format(var_x, unit_x))
     axarray[0].set_ylabel('{0} / {1}'.format(var_y, unit_y))
-    axarray[0].set_ylim([jnp.min(v_y)-1.2*eparam, jnp.max(v_y)+1.2*eparam])
+    # axarray[0].set_ylim([jnp.min(v_y)-1.2*eparam, jnp.max(v_y)+1.2*eparam])
 
 
     axarray[0].plot([jnp.min(v_x), jnp.max(v_x)], [jnp.min(v_x), jnp.max(v_x)], color='black', linestyle='--', label='expectation')
@@ -72,14 +79,14 @@ def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v
     if regression:
         if b>0:
             if abs(b)>0.1:
-                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle='--', label=r'${0:.2f} \cdot$ {2} $+ {1:.2f}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
+                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle=':', label=r'${0:.2f} \cdot$ {2} $+ {1:.2f}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
             else:
-                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle='--', label=r'${0:.2f} \cdot$ {2} $+ {1:.2e}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
+                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle=':', label=r'${0:.2f} \cdot$ {2} $+ {1:.2e}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
         else:
             if abs(b)>0.1:
-                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle='--', label=r'${0:.2f} \cdot$ {2} ${} {1:.2f}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
+                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle=':', label=r'${0:.2f} \cdot$ {2} ${} {1:.2f}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
             else:
-                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle='--', label=r'${0:.2f} \cdot$ {2} $ {1:.2e}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
+                axarray[0].plot(v_x, m*v_x+b, color='green', linestyle=':', label=r'${0:.2f} \cdot$ {2} $ {1:.2e}$ {3}'.format(m, b, var_x, unit_y), alpha=0.8)
         plt.figtext(0.14,0.7,r'$\chi^2/ndf = %.2f / (%.0f-2) = %.2f$'% (chiq, len(v_x), chiq/(len(v_x)-2)))
 
     axarray[0].legend()
@@ -88,7 +95,7 @@ def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v
     fig.subplots_adjust(hspace=0.0)
     
     if save == True:
-        plt.savefig('Plots/'+name+'.png')
+        plt.savefig('Plots/Tests/'+pfad+'.png')
     
     plt.show() 
 
@@ -124,7 +131,7 @@ def Auswertung(file_roh, file_sigma, file_sd=None, name='', Zoom = None):
 
 
 
-def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=False):
+def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=False, ind=None):
     data_roh = pd.read_csv(file_roh, header=None)
     data_sigma = pd.read_csv(file_sigma, header=None)
 
@@ -142,7 +149,7 @@ def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=
         inferredsd = jnp.array(data_sd.iloc[:,1])
         stdsd = jnp.array(data_sd.iloc[:,2])
         msd, emsd, bsd, ebsd, chiqsd, ndofsd = linreg(truthsd, inferredsd, stdsd)
-        residuenplot(0, 'True Value', r'$M_{sun}/pc^3', truthsd, r'$M_{sun}/pc^3', 'Inferred Value', 'a.u.', inferredsd, stdsd, msd, bsd, chiqsd, name='Surface Density ' + name, save=save)
+        residuenplot(0, 0, 'True Value', r'$M_{sun}pc^{-2}$', truthsd, 0, 'Inferred Value', r'$M_{sun}pc^{-2}$', inferredsd, stdsd, msd, bsd, chiqsd, name=r'$\Sigma_s$ ' + name, save=save, pfad=f'surfdens_'+name, regression=True, residue=True, mean=False, ind=ind)
 
     if file_rd != None:
         data_rd = pd.read_csv(file_rd, header=None)
@@ -150,25 +157,26 @@ def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=
         inferredrd = jnp.array(data_rd.iloc[:,1])
         stdrd = jnp.array(data_rd.iloc[:,2])
         mrd, emrd, brd, ebrd, chiqrd, ndofrd = linreg(truthrd, inferredrd, stdrd)
-        residuenplot(rho_dm, rho_dm, 'True Value', r'$M_{sun}pc^{-3}$', truthrd, 0, 'Inferred Value', r'$M_{sun}pc^{-3}$', inferredrd, stdrd, mrd, brd, chiqrd, name=r'$\rho_{dm}$ ' + name, save=save, regression=True, residue=True, mean=False)
+        residuenplot(rho_dm, rho_dm, '$True Value$', r'$M_{sun}pc^{-3}$', truthrd, 0, '$Inferred Value$', r'$M_{sun}pc^{-3}$', inferredrd, stdrd, mrd, brd, chiqrd, name=r'$\rho_{dm}$ ' + name, save=save, pfad='rhodm_'+name, regression=True, residue=True, mean=False, ind=ind)
 
     for i in range(15):
         mr, emr, br, ebr, chiqr, ndofr = linreg(truthr[i::15], inferredr[i::15], stdr[i::15])
-        residuenplot(rhos[i], erhos[i], '$True Value$', r'$M_{sun}pc^{-3}$', truthr[i::15], 0, '$Inferred Value$', r'$M_{sun}pc^{-3}$', inferredr[i::15], stdr[i::15], mr, br, chiqr, name=rf'$\rho_{{i+1}}$ ' + name, save = save, regression=False, residue=False, mean=True)
+        residuenplot(rhos[i], erhos[i], '$True Value$', r'$M_{sun}pc^{-3}$', truthr[i::15], 0, '$Inferred Value$', r'$M_{sun}pc^{-3}$', inferredr[i::15], stdr[i::15], mr, br, chiqr, name=rf'$\rho_{{{i+1}}}$ ' + name, save = save, pfad=f'rho{i+1}_'+name, regression=False, residue=False, mean=True, ind=ind)
 
     for i in range(15):
         ms, ems, bs, ebs, chiqs, ndofs = linreg(truths[i::15], inferreds[i::15], stds[i::15])
-        residuenplot(sigmas[i], esigmas[i], '$True Value$', r'$kms^{-1}$', truths[i::15], 0, '$Inferred Value$', r'$kms^{-1}$', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=rf'$\sigma_{{i+1}}$ ' + name, save=save, regression=False, residue=False, mean=True)
+
+        residuenplot(sigmas[i], esigmas[i], '$True Value$', r'$kms^{-1}$', truths[i::15], 0, '$Inferred Value$', r'$kms^{-1}$', inferreds[i::15], stds[i::15], ms, bs, chiqs, name=rf'$\sigma_{{{i+1}}}$ ' + name, save=save, pfad=f'sigma{i+1}_'+name, regression=False, residue=False, mean=True, ind=ind)
 
 
 
-Auswertung2('finale tests/rhos_vdfo_uniform.csv', 'finale tests/sigma_vdfo_uniform.csv', 'finale tests/rhodm_vdfo_uniform.csv', name='Uniforme Verteilung', save=False)
+# Auswertung2('finale tests/rhos_vdfo_uniform.csv', 'finale tests/sigma_vdfo_uniform.csv', 'finale tests/rhodm_vdfo_uniform.csv', name='Uniforme Verteilung', save=False)
 
-#Auswertung2('finale tests/rhos_vdfo.csv', 'finale tests/sigma_vdfo.csv', 'finale tests/rhodm_vdfo.csv', name='changes')
+# Auswertung2('finale tests/rhos_vdfo.csv', 'finale tests/sigma_vdfo.csv', 'finale tests/rhodm_vdfo.csv', name='density fall off', save=True, ind=[51,101])
 
-# Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='changes')
+# Auswertung2('finale tests/rhos_bin.csv', 'finale tests/sigma_bin.csv', 'finale tests/rhodm_bin.csv', name='density fall off (histogram)', save=True, ind=[101])
 
-# Auswertung2('finale tests/rhos_surfdens.csv', 'finale tests/sigma_surfdens.csv', 'finale tests/rhodm_surfdens.csv', name='changes')
+Auswertung2('finale tests/rhos_surfdens.csv', 'finale tests/sigma_surfdens.csv', 'finale tests/rhodm_surfdens.csv', 'finale tests/sd_surfdens.csv', name='surface density', save=True)
 
 
 
