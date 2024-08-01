@@ -19,15 +19,29 @@ am_max = 6.724
 # am_max = 7.4
 z1 = 1800
 n = int(z1)+1
+interval ='neg'
 
 ''' Data '''
 df = pd.read_csv(f"real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt")
-z = abs(jnp.array(df["z"].values))
+if interval == 'both':
+    z = abs(jnp.array(df["z"].values))
+    where = jnp.where(z)
+elif interval == 'pos':
+    z = jnp.array(df["z"].values)
+    where = jnp.where(z>=0)
+    z = z[where]
+elif interval == 'neg':
+    z = jnp.array(df["z"].values)
+    where = jnp.where(z<0)
+    z = abs(z[where])
+    print('Größtes z in Geschwindigkeitsdaten: ', max(z))
+
 sorted_indices = jnp.argsort(z)
 z = z[sorted_indices]
 print('Größtes z in Geschwindigkeitsdaten: ', max(z))
-v2 = jnp.array(df["v2"].values)
+v2 = jnp.array(df["v2"].values)[where]
 v2 = v2[sorted_indices]
+
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
 ''' Run '''
@@ -207,4 +221,7 @@ for s in seeds:
 
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
-fig.savefig(f'Plots/corrfield_{run}{label}.png')
+if interval == 'both':
+    fig.savefig(f'Plots/corrfield_{run}{label}.png')
+else:
+    fig.savefig(f'Plots/corrfield_{run}{label}_{interval}.png')
