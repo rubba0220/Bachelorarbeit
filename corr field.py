@@ -13,10 +13,10 @@ jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_debug_nans", False)
 
 ''' Domain '''
-# am_min = 6.0
-# am_max = 6.724
-am_min = 6.724
-am_max = 7.4
+am_min = 6.0
+am_max = 6.724
+# am_min = 6.724
+# am_max = 7.4
 z1 = 1800
 n = int(z1)+1
 
@@ -36,14 +36,35 @@ rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
 label = 'fit'
 # rough_func = (17. + 10./1200. * jnp.linspace(0, z1, n) )**2
 # label = 'read'
-# rough_func = 450. + 400./1000. * jnp.linspace(0, z1, n)
-# label = 'read2'
+# rough_func = jnp.sqrt(300.**2 + 400.**2/1200. * jnp.linspace(0, z1, n))
 # run = 'exp(cf)'
 # run = 'cf'
+#label=''
 
 inference = True
-# seeds = [42]
-seeds = [42, 12 , 34, 56, 78, 93, 102, 400, 234]
+seed = 42
+key = random.PRNGKey(seed)
+seeds = random.randint(key, (5,), 0, 1000)
+
+
+fig, axs = plt.subplots(4, 1, figsize=(20, 20))
+colors = ['blue', 'orange', 'green', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan', 'yellow']
+i=0
+axs.flat[0].set_title('Data')
+axs.flat[0].grid()
+axs.flat[0].scatter(z, v2, marker='.', color='black')
+axs.flat[0].plot(z, poly[0]*z+poly[1], color='red')
+axs.flat[2].plot(np.linspace(0,z1,n), poly[0]*np.linspace(0,z1,n)+poly[1], color='red')
+if run == 'rough_func' and label == 'read':
+    axs.flat[2].plot(np.linspace(0,z1,n), rough_func, color='red')
+axs.flat[0].sharex(axs[0])
+
+axs.flat[1].set_title('Correlated Field')
+axs.flat[2].set_title('Sigma_sq')
+axs.flat[3].set_title('Amplitude spectrum')
+axs.flat[1].grid()
+axs.flat[2].grid()
+axs.flat[3].grid()
 
 for s in seeds:
     seed = s
@@ -53,8 +74,8 @@ for s in seeds:
     dims = (n, )
 
     if run == 'rough_func':
-        cf_zm = dict(offset_mean=0., offset_std=(0.5, 0.5))
-        cf_fl = dict(   fluctuations=(1., 1.),
+        cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #0.5 0.5
+        cf_fl = dict(   fluctuations=(0.5, 0.3), #1. 1.
                         loglogavgslope=(-3., 0.5),
                         flexibility=(1e-3, 1e-16),
                         asperity=(1e-3, 1e-16),)
@@ -96,8 +117,8 @@ for s in seeds:
     signal = Signal(correlated_field)
     
     signal_response = signal
-    noise_cov = lambda x: 1100**2 * x
-    noise_cov_inv = lambda x:1100**(-2) * x
+    noise_cov = lambda x: poly[4]**2 * x
+    noise_cov_inv = lambda x:poly[4]**(-2) * x
 
     # Create synthetic data
     # key, subkey = random.split(key)
@@ -147,102 +168,43 @@ for s in seeds:
             odir="results_intro",
             resume=False,
         )
-
-        ''' Auswertung '''
-        post_sr_mean = jft.mean_and_std(tuple(signal(s) for s in samples))
-        corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
-        if run == 'rough_func':
-            sigma_sq = jft.mean_and_std(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
-        elif run == 'exp(cf)':
-            sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
-        elif run == 'cf':
-            sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
-        post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
-        grid_ = correlated_field.target_grids[0]
-
-        to_plot = [ ("Data", v2, 'scatter'), 
-                    ("Reconstruction", post_sr_mean, 'plot'), 
-                    ("Correlated Field", corrfield, 'plot2'),
-                    ('Sigma_sq', sigma_sq, 'plot2'),
-                    ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
-                                            post_a_mean), "loglog")]
-
-        ''' Plot '''
-        fig, axs = plt.subplots(5, 1, figsize=(20, 20))
-        for ax, v in zip(axs.flat, to_plot):
-            title, field, tp = v
-            ax.set_title(title)
-            ax.grid()
-            if tp == 'scatter':
-                ax.scatter(z, field, marker='.')
-                ax.plot(z, poly[0]*z+poly[1])
-                ax.sharex(axs[0])
-            elif tp == 'plot':
-                ax.plot(z, field[0])
-                ax.plot(z, field[0]+field[1], alpha=0.5)
-                ax.plot(z, field[0]-field[1], alpha=0.5)
-                ax.plot(z, poly[0]*z+poly[1])
-                ax.sharex(axs[0])
-            elif tp == 'plot2':
-                ax.plot(jnp.linspace(0, z1, n), field[0])
-                ax.plot(jnp.linspace(0, z1, n), field[0]+field[1], alpha=0.5)
-                ax.plot(jnp.linspace(0, z1, n), field[0]-field[1], alpha=0.5)
-                ax.sharex(axs[0])
-            elif tp == 'loglog':
-                x = field[0]
-                ax.loglog(x, field[1], alpha=0.7)
-        fig.tight_layout()
-        # if run == 'rough_func':
-        #     fig.savefig(f'Plots/corrfield_rough_func_{label}.png')
-        # elif run == 'exp(cf)':
-        #     fig.savefig(f'Plots/corrfield_exp_cf.png')
-        # elif run == 'cf':
-        #     fig.savefig(f'Plots/corrfield_cf.png')
-        plt.show()
-    
     else:
         ''' Sampling '''
         key, subkey = random.split(key)
         samples = [jft.random_like(subkey, signal_response.domain)]
 
-        ''' Auswertung'''
-        post_sr_mean = jft.mean(tuple(signal(s) for s in samples))
-        corrfield = jft.mean(tuple(correlated_field(s) for s in samples))
-        if run == 'rough_func':
-            sigma_sq = jft.mean(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
-        elif run == 'exp(cf)':
-            sigma_sq = jft.mean(tuple(jnp.exp(correlated_field(s)) for s in samples))
-        elif run == 'cf':
-            sigma_sq = jft.mean(tuple(correlated_field(s) for s in samples))
-        post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
-        grid_ = correlated_field.target_grids[0]
+    ''' Auswertung '''
+    post_sr_mean = jft.mean_and_std(tuple(signal(s) for s in samples))
+    corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+    if run == 'rough_func':
+        sigma_sq = jft.mean_and_std(tuple(rough_func * jnp.exp(correlated_field(s)) for s in samples))
+    elif run == 'exp(cf)':
+        sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
+    elif run == 'cf':
+        sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+    post_a_mean = jft.mean(tuple(cfm.amplitude(s)[1:] for s in samples))
+    grid_ = correlated_field.target_grids[0]
 
-        to_plot = [ ("Data", v2, 'scatter'), 
-                    ("Reconstruction", post_sr_mean, 'plot'), 
-                    ("Correlated Field", corrfield, 'plot2'),
-                    ('Sigma_sq', sigma_sq, 'plot2'),
-                    ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
-                                            post_a_mean), "loglog")]
+    to_plot = [ ("Correlated Field", corrfield, 'plot'),
+                ('Sigma_sq', sigma_sq, 'plot'),
+                ("Amplitude spectrum", (grid_.harmonic_grid.mode_lengths[1:],
+                                        post_a_mean), "loglog")]
 
-        ''' Plot '''
-        fig, axs = plt.subplots(5, 1, figsize=(20, 20))
-        for ax, v in zip(axs.flat, to_plot):
-            title, field, tp = v
-            ax.set_title(title)
-            ax.grid()
-            if tp == 'scatter':
-                ax.scatter(z, field, marker='.')
-                ax.plot(z, poly[0]*z+poly[1])
-                ax.sharex(axs[0])
-            elif tp == 'plot':
-                ax.plot(z, field)
-                ax.plot(z, poly[0]*z+poly[1])
-                ax.sharex(axs[0])
-            elif tp == 'plot2':
-                ax.plot(jnp.linspace(0, z1, n), field)
-                ax.sharex(axs[0])
-            elif tp == 'loglog':
-                x = field[0]
-                ax.loglog(x, field[1], alpha=0.7)
-        fig.tight_layout()
-        plt.show()
+    ''' Plot '''
+    for ax, v in zip(axs.flat[1:], to_plot):
+        title, field, tp = v
+        if tp == 'plot':
+            ax.plot(jnp.linspace(0, z1, n), field[0], color=colors[i])
+            ax.fill_between(jnp.linspace(0, z1, n), field[0]+field[1], field[0]-field[1], alpha=0.1, color=colors[i])
+            ax.sharex(axs[0])
+        elif tp == 'loglog':
+            x = field[0]
+            ax.loglog(x, field[1], alpha=0.7, color=colors[i])
+    
+    i+=1
+    
+
+
+fig.tight_layout()
+fig.subplots_adjust(hspace=0.0)
+fig.savefig(f'Plots/corrfield_{run}{label}.png')
