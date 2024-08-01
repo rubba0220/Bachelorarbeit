@@ -37,14 +37,15 @@ am_max = 6.724
 # am_min = 6.724
 # am_max = 7.400
 z2 = 150.
-z1 = 1000.
+z1 = 1600.
 z3 = 5000.
-name = 'n:newerparams ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:anderefunc2 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly2 = (10./1200., 17.)
+poly3 = (400**2/1200, 300.)
 # run = 'cf'
 # run = 'exp(cf)'
 run = 'rough_func'
@@ -98,8 +99,8 @@ if run == 'rough_func':
         m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
         b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
     elif label == 'read':
-        m_poly = jft.LogNormalPrior(poly2[0], 0.5*poly2[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly2[1], 0.5*poly2[1], name="b_steig", shape=(1,))
+        m_poly = jft.LogNormalPrior(poly2[0], 0.2*poly2[0], name="m_steig", shape=(1,))
+        b_poly = jft.LogNormalPrior(poly2[1], 0.2*poly2[1], name="b_steig", shape=(1,))
 
 ''' Data '''
 data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
@@ -183,7 +184,7 @@ R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
 
 lh_dfo = jft.Poissonian(data).amend(R_dfo)
-lh_sd = jft.Gaussian(49.4, lambda x: 1/4.6**2 * x).amend(R_sd)
+lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(v2, lambda x: 1/1100**2 * x).amend(R_sig2)	#7 #sinnvoller wählen !!!!
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
