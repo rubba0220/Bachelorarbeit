@@ -14,12 +14,12 @@ jax.config.update("jax_debug_nans", False)
 
 ''' Domain '''
 am_min = 6.0
-am_max = 6.724
+# am_max = 6.724
 # am_min = 6.724
-# am_max = 7.4
+am_max = 7.4
 z1 = 1800
 n = int(z1)+1
-interval ='neg'
+interval ='both'
 
 ''' Data '''
 df = pd.read_csv(f"real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt")
@@ -45,15 +45,15 @@ v2 = v2[sorted_indices]
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
 ''' Run '''
-run = 'rough_func'
-rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
-label = 'fit'
+# run = 'rough_func'
+# rough_func = poly[0]*jnp.linspace(0, z1, n)+poly[1]
+# label = 'fit'
 # rough_func = (17. + 10./1200. * jnp.linspace(0, z1, n) )**2
 # label = 'read'
 # rough_func = jnp.sqrt(300.**2 + 400.**2/1200. * jnp.linspace(0, z1, n))
 # run = 'exp(cf)'
-# run = 'cf'
-#label=''
+run = 'cf'
+label=''
 
 inference = True
 seed = 42
