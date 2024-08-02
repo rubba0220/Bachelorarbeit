@@ -95,7 +95,7 @@ def residuenplot(param, eparam, var_x, unit_x, v_x, v_s_x, var_y, unit_y, v_y, v
     fig.subplots_adjust(hspace=0.0)
     
     if save == True:
-        plt.savefig('Plots/Tests/'+pfad+'.png')
+        plt.savefig('../Plots/Tests/'+pfad+'.png')
     
     plt.show() 
 

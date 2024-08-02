@@ -5,9 +5,16 @@ from jax import jit, random
 from matplotlib import pyplot as plt
 import nifty8.re as jft
 import pandas as pd
-import util
+
+import sys
+import os
 import importlib
 import time
+current_dir = os.path.abspath('')
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(parent_dir)
+
+import util
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
@@ -149,7 +156,7 @@ def test_mgvi(s):
             )
         ),
         sample_mode="nonlinear_resample",
-        odir="./results_test",
+        odir=None, #"./results_test",
         resume=False,
     )
 
