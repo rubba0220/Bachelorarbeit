@@ -7,7 +7,6 @@ from jax.scipy.interpolate import RegularGridInterpolator
 import pandas as pd
 import numpy as np
 import nifty8.re as jft
-import util_working
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_debug_nans", False)
@@ -22,7 +21,7 @@ n = int(z1)+1
 interval ='both'
 
 ''' Data '''
-df = pd.read_csv(f"real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt")
+df = pd.read_csv(f"../real data new intervals/v2_{am_min*1000:.0f}{am_max*1000:.0f}.txt")
 if interval == 'both':
     z = abs(jnp.array(df["z"].values))
     where = jnp.where(z)
@@ -42,7 +41,7 @@ print('Größtes z in Geschwindigkeitsdaten: ', max(z))
 v2 = jnp.array(df["v2"].values)[where]
 v2 = v2[sorted_indices]
 
-poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+poly = np.loadtxt(f'../real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
 ''' Run '''
 # run = 'rough_func'
@@ -179,7 +178,7 @@ for s in seeds:
                 )
             ),
             sample_mode="nonlinear_resample",
-            odir="results_intro",
+            odir=None,#"results_intro",
             resume=False,
         )
     else:
@@ -222,6 +221,6 @@ for s in seeds:
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
 if interval == 'both':
-    fig.savefig(f'Plots/corrfield_{run}{label}.png')
+    fig.savefig(f'../Plots/cf/corrfield_{run}{label}.png')
 else:
-    fig.savefig(f'Plots/corrfield_{run}{label}_{interval}.png')
+    fig.savefig(f'../Plots/cf/corrfield_{run}{label}_{interval}.png')

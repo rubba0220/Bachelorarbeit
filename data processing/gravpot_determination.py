@@ -1,12 +1,14 @@
 import jax
-from jax import jit
-from functools import partial
 import jax.numpy as jnp
-import diffrax as dif
 from matplotlib import pyplot as plt
 import pandas as pd
-import util
+
+import sys
+import os
 import importlib
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import util
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
@@ -45,17 +47,17 @@ integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
 
 
 ''' Failed reconstruction '''
-rho_dm_truth = pd.read_csv('finale tests/rhodm_vdfo.csv', header=None).iloc[51,0]
-rho_dm_inferred = pd.read_csv('finale tests/rhodm_vdfo.csv', header=None).iloc[51,1]
-rho_dm_std = pd.read_csv('finale tests/rhodm_vdfo.csv', header=None).iloc[51,2]
+rho_dm_truth = pd.read_csv('../Tests/finale tests/rhodm_vdfo.csv', header=None).iloc[51,0]
+rho_dm_inferred = pd.read_csv('../Tests/finale tests/rhodm_vdfo.csv', header=None).iloc[51,1]
+rho_dm_std = pd.read_csv('../Tests/finale tests/rhodm_vdfo.csv', header=None).iloc[51,2]
 
-rho_truth = pd.read_csv('finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,0]
-rho_inferred = pd.read_csv('finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,1]
-rho_std = pd.read_csv('finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,2]
+rho_truth = pd.read_csv('../Tests/finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,0]
+rho_inferred = pd.read_csv('../Tests/finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,1]
+rho_std = pd.read_csv('../Tests/finale tests/rhos_vdfo.csv', header=None).iloc[51*15:52*15,2]
 
-sigma_truth = pd.read_csv('finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,0]
-sigma_inferred = pd.read_csv('finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,1]
-sigma_std = pd.read_csv('finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,2]
+sigma_truth = pd.read_csv('../Tests/finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,0]
+sigma_inferred = pd.read_csv('../Tests/finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,1]
+sigma_std = pd.read_csv('../Tests/finale tests/sigma_vdfo.csv', header=None).iloc[51*15:52*15,2]
 
 params_truth = jnp.transpose(jnp.vstack((jnp.array(rho_truth.to_numpy()), jnp.array(sigma_truth.to_numpy()))))
 params_inferred = jnp.transpose(jnp.vstack((jnp.array(rho_inferred.to_numpy()), jnp.array(sigma_inferred.to_numpy()))))
@@ -104,7 +106,7 @@ ax[1].grid()
 ax[1].legend()
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
-plt.savefig('Plots/failed_reconstruction.png')
+plt.savefig('../Plots/failed_reconstruction.png')
 
 
 
@@ -129,7 +131,7 @@ ax[1].grid()
 ax[1].legend(prop={'size': 23})
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
-plt.savefig('Plots/influence_rho_dm.png')
+plt.savefig('../Plots/influence_rho_dm.png')
 
 # ''' Visualisierung rho_dm norm'''
 # fig, ax = plt.subplots(2, figsize=(20,20), sharex=True, gridspec_kw={'height_ratios': [1,1]})
@@ -189,7 +191,7 @@ ax[1].grid()
 ax[1].legend()
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
-plt.savefig('Plots/influence_other_params.png')
+plt.savefig('../Plots/influence_other_params.png')
 
 
 
@@ -332,15 +334,13 @@ n1_ = int(z1_/dz1_+1)
 n3_ = int(z3_/dz3_+1)
 
 ''' Forward Model '''
-import util_with_inter as u2
-importlib.reload(u2)
 points = jnp.unique(jnp.append(jnp.linspace(0, z3_, n3_), jnp.linspace(0, z1_, n1_)))
 wheres = [list(points).index(element) for element in jnp.unique(jnp.append(jnp.arange(100, z3_, 100), jnp.arange(z3_, z1_, 100)))]
 
-# uz_paper, zs_paper = u2.Solver(rho_dm, params, points)
-# uz_paper2, zs_paper2 = u2.Solver(rho_dm, 1.15*params, points)
-# uz_SHM, zs_SHM = u2.Solver(rho_dm_SHM, params, points)
-# uz_SHM2, zs_SHM2 = u2.Solver(rho_dm_SHM, 1.15*params, points)
+# uz_paper, zs_paper = util.Solver_points(rho_dm, params, points)
+# uz_paper2, zs_paper2 = util.Solver_points(rho_dm, 1.15*params, points)
+# uz_SHM, zs_SHM = util.Solver_points(rho_dm_SHM, params, points)
+# uz_SHM2, zs_SHM2 = util.Solver_points(rho_dm_SHM, 1.15*params, points)
 
 def term(params, u):
     return jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2))
@@ -413,8 +413,8 @@ def surf_dens(term, where):
 # print( 2 * jnp.sum(term_SHM[:-1] * (points[1:]-points[:-1])) )
 # print(49.4, '+-', 4.6)
 
-uz_test, zs_test = u2.Solver(0.003, params, points)
-uz_test2, zs_test2 = u2.Solver(0.003, 0.9*params, points)
+uz_test, zs_test = util.Solver_points(0.003, params, points)
+uz_test2, zs_test2 = util.Solver_points(0.003, 0.9*params, points)
 
 term_test = jnp.array([term(params, u) for u in uz_test])
 term_test2 = jnp.array([term(0.9*params, u) for u in uz_test2])
@@ -451,4 +451,4 @@ ax[1].legend()
 #ax[1].set_yscale('log')
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
-plt.savefig('Plots/surface_density.png')
+plt.savefig('../Plots/surface_density.png')

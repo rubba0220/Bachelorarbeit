@@ -1,14 +1,10 @@
 import jax
 import jax.numpy as jnp
-import numpy as np
 import jax.lax as lax
-from jax import jit, random
+from jax import jit
 from functools import partial
-from matplotlib import pyplot as plt
 from scipy import constants as const
-import nifty8.re as jft
 import diffrax as dif
-import pandas as pd
 from jax.scipy.integrate import trapezoid
 from jax.scipy.interpolate import RegularGridInterpolator
 

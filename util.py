@@ -1,14 +1,10 @@
 import jax
 import jax.numpy as jnp
-import numpy as np
 import jax.lax as lax
-from jax import jit, random
+from jax import jit
 from functools import partial
-from matplotlib import pyplot as plt
 from scipy import constants as const
-import nifty8.re as jft
 import diffrax as dif
-import pandas as pd
 from jax.scipy.integrate import trapezoid
 
 jax.config.update("jax_enable_x64", True)
@@ -69,8 +65,8 @@ def eigenerSolverV2(rho_dm, params, z1, n):
     return uz, zs
 
 #Berechnung des tracer density drop off
-@partial(jit, static_argnames=['n', 'z1', 'z2', 'mock'])
-def vdfo_norm(z2, z1, zs, uz, n, poly, mock=False):
+@partial(jit, static_argnames=['n', 'z1', 'z2', 'mock', 'inter'])
+def vdfo_norm(z2, z1, zs, uz, n, poly, mock=False, inter=False):
     dz = (z1-z0)/(n-1)
 
     #still mock velocity dispersion
@@ -80,19 +76,23 @@ def vdfo_norm(z2, z1, zs, uz, n, poly, mock=False):
 
     #mock velocity dispersion function
     if mock == True:
-        def sigma(z):
-         return 17. + 20.*z/1200. #z in pc, sigma in km/s
+        if inter == True:
+            def sigma(z):
+                return sig(z)
+        else:
+            def sigma(z):
+                return 17. + 20.*z/1200. #z in pc, sigma in km/s
 
     i_s = int((z2-z0)/(z1-z0) * (n-1))
     
     z = zs[i_s:]
-    sigma_sq_norm = (sigma(z)/sigma(z0+i_s*dz))**(2)
+    sigma_sq_norm = (sigma(z)/sigma(jnp.array([z0+i_s*dz])))**(2)
 
     exp_int = 1.
 
     def exp_int_step(exp_int, i):
-        carry = exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * (jnp.array(uz)[i,1]+jnp.array(uz)[i+1,1])/2 * dz)
-        return carry, carry
+        carry = exp_int * jnp.exp(-sigma(jnp.array([z0+i*dz]))**(-2) * (jnp.array(uz)[i,1]+jnp.array(uz)[i+1,1])/2 * dz)
+        return *carry, *carry
 
     _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i_s, n-1, 1)) #letzter Punkt wird nicht genutzt (Riemannsumme links)
 
@@ -176,3 +176,25 @@ def Solver(rho_dm, params, z1, z3, u3, n3):
     uz_ = sol.ys
 
     return uz_, zs_
+
+@jit
+def Solver_points(rho_dm, params, points):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = dif.ODETerm(vector_field)
+    solver = dif.Dopri5()
+    saveat = dif.SaveAt(ts=points)
+    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = dif.DirectAdjoint()
+
+    sol = dif.diffeqsolve(  term, solver, 
+                            t0=z0, t1=points[-1], dt0=None, y0=u0, args=(rho_dm, params), 
+                            saveat=saveat,
+                            adjoint=adjoint,
+                            stepsize_controller=stepsize_controller) 
+                            #throw=False, max_steps=None
+
+    zs = sol.ts
+    uz = sol.ys
+
+    return uz, zs

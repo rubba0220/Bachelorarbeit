@@ -1,12 +1,15 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 import jax.lax as lax
-from jax import jit
+from jax import jit, random
 from functools import partial
+from matplotlib import pyplot as plt
 from scipy import constants as const
+import nifty8.re as jft
 import diffrax as dif
+import pandas as pd
 from jax.scipy.integrate import trapezoid
-from jax.scipy.interpolate import RegularGridInterpolator
 
 jax.config.update("jax_enable_x64", True)
 
@@ -66,30 +69,37 @@ def eigenerSolverV2(rho_dm, params, z1, n):
     return uz, zs
 
 #Berechnung des tracer density drop off
-@partial(jit, static_argnames=['n', 'z1', 'z2'])
-def vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2):
+@partial(jit, static_argnames=['n', 'z1', 'z2', 'mock'])
+def vdfo_norm(z2, z1, zs, uz, n, poly, mock=False):
     dz = (z1-z0)/(n-1)
-    
-    sigma_sq = RegularGridInterpolator((zs,), cf)
-    sig2 = sigma_sq(z_v2)
+
+    #still mock velocity dispersion
+    if mock == False:
+        def sigma(z):
+           return jnp.sqrt(poly[0]*z + poly[1])
+
+    #mock velocity dispersion function
+    if mock == True:
+        def sigma(z):
+         return 17. + 20.*z/1200. #z in pc, sigma in km/s
 
     i_s = int((z2-z0)/(z1-z0) * (n-1))
     
     z = zs[i_s:]
-    sigma_sq_norm = (sigma_sq(z)/sigma_sq(jnp.array([z0+i_s*dz])))
+    sigma_sq_norm = (sigma(z)/sigma(z0+i_s*dz))**(2)
 
     exp_int = 1.
 
     def exp_int_step(exp_int, i):
-        carry = exp_int * jnp.exp(-sigma_sq(jnp.array([z0+i*dz]))**(-1) * (jnp.array(uz)[i,1]+jnp.array(uz)[i+1,1])/2 * dz)
-        return *carry, *carry
+        carry = exp_int * jnp.exp(-sigma(z0+i*dz)**(-2) * (jnp.array(uz)[i,1]+jnp.array(uz)[i+1,1])/2 * dz)
+        return carry, carry
 
     _, exp_int_list = lax.scan(exp_int_step, exp_int, jnp.arange(i_s, n-1, 1)) #letzter Punkt wird nicht genutzt (Riemannsumme links)
 
     exp_int_list = jnp.concatenate([jnp.array([exp_int]), exp_int_list], axis=0)
     vdfo_norm_calc = jnp.multiply(sigma_sq_norm**(-1), jnp.array(exp_int_list))
 
-    return vdfo_norm_calc, z, sig2
+    return vdfo_norm_calc, z
 
 @partial(jit, static_argnames=['n', 'n_bins', 'z1', 'z2'])
 def binning(vdfo_norm_calc, z, z2, z1, n, n_bins):
