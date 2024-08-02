@@ -5,9 +5,16 @@ import numpy as np
 from jax import jit, random
 import nifty8.re as jft
 import pandas as pd
-import util
+
+import sys
+import os
 import importlib
 import time
+current_dir = os.path.abspath('')
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(parent_dir)
+
+import util
 importlib.reload(util)
 
 jax.config.update("jax_enable_x64", True)
@@ -31,9 +38,9 @@ z3 = 5000.
 summation = True
 interval = 'neg'
 
-poly = np.loadtxt(f'real data/poly_58.txt')
+poly = np.loadtxt(f'../real data/poly_58.txt')
 
-bins = np.loadtxt(f'real data/bins_{am_min:.0f}{am_max:.0f}.txt')
+bins = np.loadtxt(f'../real data/bins_{am_min:.0f}{am_max:.0f}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -45,7 +52,7 @@ n3 = int(z3-z1)+1
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
-data = np.loadtxt(f'real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
+data = np.loadtxt(f'../real data/n_{am_min:.0f}{am_max:.0f}.txt', dtype='int')
 if interval == 'pos':
     data = data[i2:i1] 
 elif interval == 'neg':
@@ -165,7 +172,7 @@ samples, state = jft.optimize_kl(
         )
     ),
     sample_mode="nonlinear_resample",
-    odir="./results_test",
+    odir=None,#"./results_test",
     resume=False,
 )
 
@@ -234,8 +241,8 @@ dfs.set_index('Run', inplace=True)
 dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 
-dfr.to_csv(f'real data pos_neg/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data pos_neg/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data pos_neg/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data pos_neg/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfr.to_csv(f'real data pos_neg/rho_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfrd.to_csv(f'real data pos_neg/rd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfs.to_csv(f'real data pos_neg/sigma_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
+# dfsd.to_csv(f'real data pos_neg/sd_{am_min:.0f}{am_max:.0f}.csv', mode='a', header=False)
 

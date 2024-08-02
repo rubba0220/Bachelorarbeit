@@ -6,6 +6,7 @@ from functools import partial
 from scipy import constants as const
 import diffrax as dif
 from jax.scipy.integrate import trapezoid
+from jax.scipy.interpolate import RegularGridInterpolator
 
 jax.config.update("jax_enable_x64", True)
 
@@ -63,6 +64,10 @@ def eigenerSolverV2(rho_dm, params, z1, n):
     uz = jnp.concatenate([jnp.array([u0]), uz], axis=0)
 
     return uz, zs
+
+z_vel = jnp.array([350, 450, 550, 650, 750, 850, 950, 1050, 1150])
+s_vel = jnp.array([21., 27., 27., 27., 28., 30., 33., 36., 36.])
+sig = RegularGridInterpolator((z_vel,), s_vel)
 
 #Berechnung des tracer density drop off
 @partial(jit, static_argnames=['n', 'z1', 'z2', 'mock', 'inter'])
