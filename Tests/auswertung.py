@@ -201,6 +201,11 @@ def Auswertung2(file_roh, file_sigma, file_rd=None, file_sd=None, name='', save=
 # Auswertung('data3/data_rho_binning.csv', 'data3/data_sigma_binning.csv', name='changes', Zoom = None)
 # Auswertung('data3/data_rho_binning_more.csv', 'data3/data_sigma_binning_more.csv', name='changes', Zoom = None)
 
+
+
+
+
+
 # Auswertung('data4/data_rho.csv', 'data4/data_sigma.csv', 'data4/data_sd.csv', name='changes', Zoom = None)
 # Auswertung('data4/data_rho_morewithnoise.csv', 'data4/data_sigma_morewithnoise.csv', 'data4/data_sd_morewithnoise.csv', name='changes', Zoom = None)
 # Auswertung('data4/data_rho_morepoints.csv', 'data4/data_sigma_morepoints.csv', 'data4/data_sd_morepoints.csv', name='changes', Zoom = None)
