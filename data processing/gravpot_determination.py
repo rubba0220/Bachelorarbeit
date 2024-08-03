@@ -452,3 +452,38 @@ ax[1].legend()
 fig.tight_layout()
 fig.subplots_adjust(hspace=0.0)
 plt.savefig('../Plots/surface_density.png')
+
+fig, axs = plt.subplots(5, figsize=(20,30), gridspec_kw={'height_ratios': [1,1,1,1,1]})
+for ax, z1_long in zip(axs, jnp.array([8000, 12000, 25000, 100000, 250000])):
+    uz_long, zs_long = util.diffraxDopri5(0.003, params, z1_long, int(z1_long)+1)
+    ax.plot(zs_long, [u[0] for u in uz_long], label='numerical', color='black')
+
+    lin = uz_long[8000,1]*(zs_long-zs_long[8000]) + uz_long[8000,0]
+    ax.plot(zs_long, lin, label='linear', linestyle='--')
+    sq = (uz_long[8000,1]-uz_long[7999,1])/(zs_long[8000]-zs_long[7999])/2 * (zs_long-zs_long[8000])**2 + uz_long[8000,1]*(zs_long-zs_long[8000]) + uz_long[8000,0]
+    ax.plot(zs_long, sq, label='quadratic', linestyle='--')
+    ax.legend()
+
+    ax.set_xlabel('z/pc')
+    ax.set_ylabel('$\Phi / (km/s)^2$')
+    ax.grid()
+plt.savefig('../Plots/surface_density_long.png')
+plt.show()
+
+
+fig, axs = plt.subplots(5, figsize=(20,30), gridspec_kw={'height_ratios': [1,1,1,1,1]})
+for ax, z1_long in zip(axs, jnp.array([8000, 12000, 25000, 100000, 250000])):
+    uz_long, zs_long = util.diffraxDopri5(0.0, params, z1_long, int(z1_long)+1)
+    ax.plot(zs_long, [u[0] for u in uz_long], label='numerical', color='black')
+
+    lin = uz_long[8000,1]*(zs_long-zs_long[8000]) + uz_long[8000,0]
+    ax.plot(zs_long, lin, label='linear', linestyle='--')
+    sq = (uz_long[8000,1]-uz_long[7999,1])/(zs_long[8000]-zs_long[7999])/2 * (zs_long-zs_long[8000])**2 + uz_long[8000,1]*(zs_long-zs_long[8000]) + uz_long[8000,0]
+    ax.plot(zs_long, sq, label='quadratic', linestyle='--')
+    ax.legend()
+
+    ax.set_xlabel('z/pc')
+    ax.set_ylabel('$\Phi / (km/s)^2$')
+    ax.grid()
+plt.savefig('../Plots/surface_density_long_norho_dm.png')
+plt.show()
