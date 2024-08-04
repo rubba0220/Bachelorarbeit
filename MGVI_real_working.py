@@ -53,8 +53,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readlin2seeda ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+name = 'n:readlin2seede ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
