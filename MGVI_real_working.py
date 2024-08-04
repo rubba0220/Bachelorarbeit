@@ -53,13 +53,13 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readsqrt30c ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 196 #[42, 80, 196, 371, 662] #80 macht Probleme
+name = 'n:readsqrt2seede ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
-poly_sqrt = (400.**2/1200, 300.**2/2)
+poly_sqrt = (400.**2/1200, 300.**2/2)*2
 # run = 'cf'
 # run = 'exp(cf)'
 run = 'rough_func'
@@ -201,7 +201,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 15
+n_samples = 10
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
@@ -362,7 +362,7 @@ for ax, v in zip(axs.flat, to_plot):
         if label == 'readsq':
             ax.plot(grid, (poly_sq[1] + poly_sq[0]*jnp.linspace(0, z1, n))**2)
         elif label == 'readsqrt':
-            ax.plot(grid, jnp.sqrt(poly_sqrt[1] + poly_sqrt[0]*jnp.linspace(0, z1, n)))
+            ax.plot(grid, jnp.sqrt(poly_sqrt[1] + poly_sqrt[0]*grid))
         ax.sharex(axs[0])
     elif tp == 'plot2':
         ax.plot(grid, field[0])
