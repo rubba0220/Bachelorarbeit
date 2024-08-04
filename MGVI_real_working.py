@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readlin2seede ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:samp40e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
@@ -66,11 +66,11 @@ poly_lin2 = (2200./1500, 300.)
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
-# label = 'fit'
+label = 'fit'
 # label = 'readsq'
 # label = 'readsqrt'
 # label = 'readlin'
-label = 'readlin2'
+# label = 'readlin2'
 
 ''' Correlated Field '''
 dims = (n, )
@@ -212,7 +212,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 10
+n_samples = 20
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
