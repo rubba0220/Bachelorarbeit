@@ -39,19 +39,6 @@ am_max = 6.724
 z2 = 150.
 z1 = 1600.
 z3 = 5000.
-name = 'n:anderefunc2 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
-interval = 'neg'
-
-poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
-poly2 = (10./1200., 17.)
-poly3 = (400**2/1200, 300.)
-# run = 'cf'
-# run = 'exp(cf)'
-run = 'rough_func'
-# label = ''
-label = 'fit'
-# label = 'read'
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
@@ -64,6 +51,22 @@ n3 = int(z3-z1)+1
 
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
+
+''' Run '''
+name = 'n:anderefunc2 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
+interval = 'neg'
+
+poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+poly_sq = (10./1200., 17.)
+poly_sqrt = (400.**2/1200, 300.**2)
+# run = 'cf'
+# run = 'exp(cf)'
+run = 'rough_func'
+# label = ''
+label = 'fit'
+# label = 'readsq'
+# label = 'readsqrt'
 
 ''' Correlated Field '''
 dims = (n, )
@@ -98,9 +101,12 @@ if run == 'rough_func':
     if label == 'fit':
         m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
         b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
-    elif label == 'read':
-        m_poly = jft.LogNormalPrior(poly2[0], 0.2*poly2[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly2[1], 0.2*poly2[1], name="b_steig", shape=(1,))
+    elif label == 'readsq':
+        m_poly = jft.LogNormalPrior(poly_sq[0], 0.2*poly_sq[0], name="m_steig", shape=(1,))
+        b_poly = jft.LogNormalPrior(poly_sq[1], 0.2*poly_sq[1], name="b_steig", shape=(1,))
+    elif label == 'readsqrt':
+        m_poly = jft.LogNormalPrior(poly_sqrt[0], 0.2*poly_sqrt[0], name="m_steig", shape=(1,))
+        b_poly = jft.LogNormalPrior(poly_sqrt[1], 0.2*poly_sqrt[1], name="b_steig", shape=(1,))
 
 ''' Data '''
 data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
@@ -158,8 +164,10 @@ class ForwardModel(jft.Model):
             b = self.b_poly(x)
             if label == 'fit':
                 rough_func = (b + m*jnp.linspace(0, z1, n))
-            elif label == 'read':
+            elif label == 'readsq':
                 rough_func = (b + m*jnp.linspace(0, z1, n))**2
+            elif label == 'readsqrt':
+                rough_func = jnp.sqrt(b + m*jnp.linspace(0, z1, n))
             cf = rough_func * jnp.exp(self.correlated_field(x))
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
@@ -193,7 +201,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 10 #mit 4 funkrioniert es bei 1600
+n_samples = 10
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
@@ -257,8 +265,10 @@ elif run == 'exp(cf)':
 elif run == 'rough_func':
     if label == 'fit':
         Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
-    if label == 'read':
+    if label == 'readsq':
         Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n))**2 * jnp.exp(correlated_field(s)) for s in samples))
+    if label == 'readsqrt':
+        Sigma_sq = jft.mean_and_std(tuple(jnp.sqrt(b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 
 meanr = [results[f'rho{k+1}'][0] for k in range(15)] 
@@ -349,8 +359,10 @@ for ax, v in zip(axs.flat, to_plot):
         ax.plot(grid, field[0]+field[1], alpha=0.5)
         ax.plot(grid, field[0]-field[1], alpha=0.5)
         ax.plot(grid, poly[0]*grid+poly[1])
-        if label == 'read':
-            ax.plot(grid, (poly2[1] + poly2[0]*jnp.linspace(0, z1, n))**2)
+        if label == 'readsq':
+            ax.plot(grid, (poly_sq[1] + poly_sq[0]*jnp.linspace(0, z1, n))**2)
+        elif label == 'readsqrt':
+            ax.plot(grid, jnp.sqrt(poly_sqrt[1] + poly_sqrt[0]*jnp.linspace(0, z1, n)))
         ax.sharex(axs[0])
     elif tp == 'plot2':
         ax.plot(grid, field[0])
