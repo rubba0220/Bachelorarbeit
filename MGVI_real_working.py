@@ -53,22 +53,24 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readsqseeda ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
+name = 'n:readlin2seeda ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
 poly_sqrt = (400.**2/1200, 300.**2/2)
 poly_lin = (700./1500, 300.)
+poly_lin2 = (2200./1500, 300.)
 # run = 'cf'
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
 # label = 'fit'
-label = 'readsq'
+# label = 'readsq'
 # label = 'readsqrt'
 # label = 'readlin'
+label = 'readlin2'
 
 ''' Correlated Field '''
 dims = (n, )
@@ -112,6 +114,9 @@ if run == 'rough_func':
     elif label == 'readlin':
         m_poly = jft.LogNormalPrior(poly_lin[0], 0.2*poly_lin[0], name="m_steig", shape=(1,))
         b_poly = jft.LogNormalPrior(poly_lin[1], 0.2*poly_lin[1], name="b_steig", shape=(1,))
+    elif label == 'readlin2':
+        m_poly = jft.LogNormalPrior(poly_lin2[0], 0.2*poly_lin2[0], name="m_steig", shape=(1,))
+        b_poly = jft.LogNormalPrior(poly_lin2[1], 0.2*poly_lin2[1], name="b_steig", shape=(1,))
 
 ''' Data '''
 data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
@@ -167,7 +172,7 @@ class ForwardModel(jft.Model):
         if run == 'rough_func':
             m = self.m_poly(x)
             b = self.b_poly(x)
-            if label == 'fit' or label == 'readlin':
+            if label == 'fit' or label == 'readlin' or label == 'readlin2':
                 rough_func = (b + m*jnp.linspace(0, z1, n))
             elif label == 'readsq':
                 rough_func = (b + m*jnp.linspace(0, z1, n))**2
@@ -269,7 +274,7 @@ if run == 'cf':
 elif run == 'exp(cf)':
     Sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
 elif run == 'rough_func':
-    if label == 'fit' or label == 'readlin':
+    if label == 'fit' or label == 'readlin' or label == 'readlin2':
         Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
     if label == 'readsq':
         Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n))**2 * jnp.exp(correlated_field(s)) for s in samples))
@@ -371,6 +376,8 @@ for ax, v in zip(axs.flat, to_plot):
             ax.plot(grid, jnp.sqrt(poly_sqrt[1] + poly_sqrt[0]*grid))
         elif label == 'readlin':
             ax.plot(grid, poly_lin[1] + poly_lin[0]*grid)
+        elif label == 'readlin2':
+            ax.plot(grid, poly_lin2[1] + poly_lin2[0]*grid)
         ax.sharex(axs[0])
     elif tp == 'plot2':
         ax.plot(grid, field[0])
