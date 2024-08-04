@@ -53,8 +53,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readsqrtsamp20a ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
+name = 'n:readsqrt30c ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 196 #[42, 80, 196, 371, 662] #80 macht Probleme
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -201,7 +201,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 10
+n_samples = 15
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
@@ -241,7 +241,7 @@ samples, state = jft.optimize_kl(
         )
     ),
     sample_mode="nonlinear_resample",
-    odir="./results_test",
+    odir=None,#"./results_test",
     resume=False,
 )
 
