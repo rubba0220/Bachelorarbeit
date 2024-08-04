@@ -53,20 +53,20 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:anderefunc2 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:readsqrtsamp20a ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
-poly_sq = (10./1200., 17.)
-poly_sqrt = (400.**2/1200, 300.**2)
+poly_sq = (20./1200., 17.)
+poly_sqrt = (400.**2/1200, 300.**2/2)
 # run = 'cf'
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
-label = 'fit'
+# label = 'fit'
 # label = 'readsq'
-# label = 'readsqrt'
+label = 'readsqrt'
 
 ''' Correlated Field '''
 dims = (n, )
