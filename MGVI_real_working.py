@@ -36,8 +36,8 @@ am_min = 6.000
 am_max = 6.724
 # am_min = 6.724
 # am_max = 7.400
-z2 = 150.
-z1 = 1600.
+z2 = 100.
+z1 = 1000.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:readlin2samp40e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:smalle ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
@@ -66,11 +66,11 @@ poly_lin2 = (2200./1500, 300.)
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
-# label = 'fit'
+label = 'fit'
 # label = 'readsq'
 # label = 'readsqrt'
 # label = 'readlin'
-label = 'readlin2'
+# label = 'readlin2'
 
 ''' Correlated Field '''
 dims = (n, )
@@ -212,7 +212,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 6
 delta = 1e-4
-n_samples = 20
+n_samples = 10
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
