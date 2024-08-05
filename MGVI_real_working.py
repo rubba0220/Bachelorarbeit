@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:samp40e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:readlin2samp40e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
@@ -66,11 +66,11 @@ poly_lin2 = (2200./1500, 300.)
 # run = 'exp(cf)'
 run = 'rough_func'
 # label = ''
-label = 'fit'
+# label = 'fit'
 # label = 'readsq'
 # label = 'readsqrt'
 # label = 'readlin'
-# label = 'readlin2'
+label = 'readlin2'
 
 ''' Correlated Field '''
 dims = (n, )
@@ -268,6 +268,9 @@ results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
 results["rhodm"] = jft.mean_and_std(results["rhosdm"])
 results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
 results["surfd"] = jft.mean_and_std(results["surfds"])
+if run == 'rough_func':
+    print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
+    print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
 
 if run == 'cf':
     Sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
