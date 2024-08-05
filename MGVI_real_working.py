@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:smalle ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:smallere ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
