@@ -1,0 +1,203 @@
+XlaRuntimeError                           Traceback (most recent call last)
+Cell In[13], line 227
+    224 key, k_i, k_o = random.split(key, 3)
+    226 t0 = time.time()
+--> 227 samples, state = jft.optimize_kl(
+    228     lh,
+    229     jft.Vector(lh.init(k_i)),
+    230     n_total_iterations=n_vi_iterations,
+    231     n_samples=lambda i: n_samples // 2 if i < 2 else n_samples,
+    232     # Source for the stochasticity for sampling
+    233     key=k_o,
+    234     # Arguments for the conjugate gradient method used to drawing samples from an implicit covariance matrix
+    235     draw_linear_kwargs=dict(
+    236         cg_name="SL",
+    237         cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
+    238     ),
+    239     # Arguements for the minimizer in the nonlinear updating of the samples
+    240     nonlinearly_update_kwargs=dict(
+    241         minimize_kwargs=dict(
+    242             name="SN",
+    243             xtol=delta,
+    244             cg_kwargs=dict(name=None),
+    245             maxiter=5,
+    246         )
+    247     ),
+    248     # Arguments for the minimizer of the KL-divergence cost potential
+    249     kl_kwargs=dict(
+    250         minimize_kwargs=dict(
+    251             name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
+    252         )
+    253     ),
+    254     sample_mode="nonlinear_resample",
+    255     odir=None,#"./results_test",
+    256     resume=False,
+    257 )
+    259 ''' Results '''
+    260 results = {}
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py:677, in optimize_kl(likelihood, position_or_samples, key, n_total_iterations, n_samples, point_estimates, constants, kl_jit, residual_jit, kl_map, residual_map, kl_reduce, mirror_samples, draw_linear_kwargs, nonlinearly_update_kwargs, kl_kwargs, sample_mode, resume, callback, odir, _optimize_vi, _optimize_vi_state)
+    675 for i in range(opt_vi_st.nit, opt_vi.n_total_iterations - 1):
+    676     logger.info(f"OPTIMIZE_KL Iteration {i+1:04d}")
+--> 677     samples, opt_vi_st = opt_vi.update(samples, opt_vi_st)
+    678     msg = opt_vi.get_status_message(samples, opt_vi_st)
+    679     logger.info(msg)
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py:535, in OptimizeVI.update(self, samples, state, **kwargs)
+    533 # Make the `key` tick independently of whether samples are drawn or not
+    534 key, sk = random.split(key, 2)
+--> 535 samples, st_smpls = self.draw_samples(
+    536     samples,
+    537     key=sk,
+    538     sample_mode=sample_mode,
+    539     point_estimates=point_estimates,
+    540     n_samples=n_samples,
+    541     draw_linear_kwargs=draw_linear_kwargs,
+    542     nonlinearly_update_kwargs=nonlinearly_update_kwargs,
+    543     **kwargs
+    544 )
+    546 kl_kwargs = _getitem_at_nit(config, "kl_kwargs", nit).copy()
+    547 kl_opt_state = self.kl_minimize(samples, **kl_kwargs, **kwargs)
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py:386, in OptimizeVI.draw_samples(self, samples, key, sample_mode, n_samples, point_estimates, draw_linear_kwargs, nonlinearly_update_kwargs, **kwargs)
+    378 samples, st_smpls = self.draw_linear_samples(
+    379     samples.pos,
+    380     k_smpls,
+   (...)
+    383     **kwargs
+    384 )
+    385 if sample_mode.lower().startswith("nonlinear"):
+--> 386     samples, st_smpls = self.nonlinearly_update_samples(
+    387         samples,
+    388         point_estimates=point_estimates,
+    389         **nonlinearly_update_kwargs,
+    390         **kwargs
+    391     )
+    392 elif not sample_mode.lower().startswith("linear"):
+    393     ve = f"invalid sampling mode {sample_mode!r}"
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py:343, in OptimizeVI.nonlinearly_update_samples(self, samples, **kwargs)
+    341 sgn = jnp.ones(len(samples.keys))
+    342 sgn = concatenate_zip(sgn, -sgn)
+--> 343 smpls, smpls_states = curver(
+    344     samples.pos, samples._samples, metric_sample_key, sgn
+    345 )
+    346 smpls = Samples(pos=samples.pos, samples=smpls, keys=samples.keys)
+    347 return smpls, smpls_states
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py:72, in _generic_smap(fun, in_axes, out_axes, unroll, _scan, *x, **k)
+     63         raise TypeError(f"expected `in_axes` index of type int; got {i!r}")
+     65 fun_reord = partial(
+     66     _fun_reord,
+     67     fun=fun,
+   (...)
+     70     in_axes=in_axes
+     71 )
+---> 72 _, y = _scan(fun_reord, None, mapped, unroll=unroll)
+     74 if out_axes is None:
+     75     out_axes, out_axes_td = tree_flatten(out_axes)
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py:146, in _lscan(f, init, xs, length, unroll)
+    144 length = lvs[0].shape[0] if length is None else length
+    145 for i in range(length):
+--> 146     carry, y = f(carry, jax.tree_map(lambda x: x[i], xs))
+    147     if ys is None:
+    148         # NOTE, `empty_like` will always allocate on the primary device even
+    149         # if `y` is on a different device. Forcefully allocate on the same
+    150         # device as `y`.
+    151         with jax.default_device(like_device):
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py:19, in _fun_reord(_, mapped, fun, unmapped, unflatten, in_axes)
+     17 assert len(un) + len(mapped) == len(in_axes)
+     18 args = tuple(un.pop(0) if a is None else mapped.pop(0) for a in in_axes)
+---> 19 y = fun(*unflatten(args))
+     20 return None, y
+
+File ~\AppData\Roaming\Python\Python311\site-packages\jax\_src\tree_util.py:484, in _HashableCallableShim.__call__(self, *args, **kw)
+    483 def __call__(self, *args, **kw):
+--> 484   return self.fun(*args, **kw)
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\evi.py:253, in nonlinearly_update_residual(***failed resolving arguments***)
+    238     trafo_at_p = likelihood.transformation(pos)
+    239     options = {
+    240         "fun_and_grad":
+    241             partial(
+   (...)
+    251             partial(sampnorm, pos, point_estimates=point_estimates),
+    252     }
+--> 253     opt_state = minimize(None, x0=sample, **(minimize_kwargs | options))
+    254 else:
+    255     opt_state = optimize.OptimizeResults(sample, True, 0, None, None)
+
+File ~\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize.py:178, in _newton_cg(fun, x0, miniter, maxiter, energy_reduction_factor, old_fval, absdelta, norm_ord, xtol, jac, fun_and_grad, hessp, name, cg, cg_kwargs, time_threshold, custom_gradnorm)
+    176 for naive_ls_it in range(9):
+    177     new_pos = pos - grad_scaling * dd
+--> 178     new_energy, new_g = fun_and_grad(new_pos)
+    179     nfev, njev = nfev + 1, njev + 1
+    180     if new_energy <= energy:
+
+    [... skipping hidden 10 frame]
+
+File ~\AppData\Roaming\Python\Python311\site-packages\jax\_src\interpreters\pxla.py:1177, in ExecuteReplicated.__call__(self, *args)
+   1174 if (self.ordered_effects or self.has_unordered_effects
+   1175     or self.has_host_callbacks):
+   1176   input_bufs = self._add_tokens_to_inputs(input_bufs)
+-> 1177   results = self.xla_executable.execute_sharded(
+   1178       input_bufs, with_tokens=True
+   1179   )
+   1180   result_token_bufs = results.disassemble_prefix_into_single_device_arrays(
+   1181       len(self.ordered_effects))
+   1182   sharded_runtime_token = results.consume_token()
+
+XlaRuntimeError: INTERNAL: Generated function failed: CpuCallback error: Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel_launcher.py", line 17, in <module>
+  File "c:\ProgramData\anaconda3\Lib\site-packages\traitlets\config\application.py", line 992, in launch_instance
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\kernelapp.py", line 701, in start
+  File "c:\ProgramData\anaconda3\Lib\site-packages\tornado\platform\asyncio.py", line 195, in start
+  File "c:\ProgramData\anaconda3\Lib\asyncio\windows_events.py", line 321, in run_forever
+  File "c:\ProgramData\anaconda3\Lib\asyncio\base_events.py", line 607, in run_forever
+  File "c:\ProgramData\anaconda3\Lib\asyncio\base_events.py", line 1922, in _run_once
+  File "c:\ProgramData\anaconda3\Lib\asyncio\events.py", line 80, in _run
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 534, in dispatch_queue
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 523, in process_one
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 429, in dispatch_shell
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\kernelbase.py", line 767, in execute_request
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\ipkernel.py", line 429, in do_execute
+  File "C:\Users\Ruben\AppData\Local\Temp\ipykernel_64968\2780470093.py", line 29, in wrapper
+  File "c:\ProgramData\anaconda3\Lib\site-packages\ipykernel\zmqshell.py", line 549, in run_cell
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3051, in run_cell
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3106, in _run_cell
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\async_helpers.py", line 129, in _pseudo_sync_runner
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3311, in run_cell_async
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3493, in run_ast_nodes
+  File "c:\ProgramData\anaconda3\Lib\site-packages\IPython\core\interactiveshell.py", line 3553, in run_code
+  File "<ipython-input-13-a7f7941ea8dc>", line 227, in <module>
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py", line 677, in optimize_kl
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py", line 535, in update
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py", line 386, in draw_samples
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize_kl.py", line 343, in nonlinearly_update_samples
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py", line 72, in _generic_smap
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py", line 146, in _lscan
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\custom_map.py", line 19, in _fun_reord
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\tree_util.py", line 484, in __call__
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\evi.py", line 253, in nonlinearly_update_residual
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\nifty8\re\optimize.py", line 178, in _newton_cg
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\traceback_util.py", line 179, in reraise_with_filtered_traceback
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\pjit.py", line 304, in cache_miss
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\pjit.py", line 181, in _python_pjit_helper
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\core.py", line 2789, in bind
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\core.py", line 391, in bind_with_trace
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\core.py", line 879, in process_primitive
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\pjit.py", line 1525, in _pjit_call_impl
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\pjit.py", line 1508, in call_impl_cache_miss
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\pjit.py", line 1462, in _pjit_call_impl_python
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\profiler.py", line 335, in wrapper
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\interpreters\pxla.py", line 1177, in __call__
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\interpreters\mlir.py", line 2483, in _wrapped_callback
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\callback.py", line 221, in _callback
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\callback.py", line 82, in pure_callback_impl
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\jax\_src\callback.py", line 64, in __call__
+  File "C:\Users\Ruben\AppData\Roaming\Python\Python311\site-packages\equinox\_errors.py", line 70, in raises
+EqxRuntimeError: The maximum number of solver steps was reached. Try increasing `max_steps`.
