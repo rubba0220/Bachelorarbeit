@@ -54,7 +54,7 @@ n_bins = int(len(bins)-1)
 
 ''' Run '''
 name = 'n:runtimeerror ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 371 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -252,7 +252,7 @@ samples, state = jft.optimize_kl(
         )
     ),
     sample_mode="nonlinear_resample",
-    odir="./results_test",
+    odir="./runtimeerror/results_test",
     resume=False,
 )
 
@@ -348,6 +348,7 @@ dfsd.set_index('Run', inplace=True)
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
+print(fwd(samples[0])['dfo'])
 ''' Save Results '''
 # dfr.to_csv(f'real data new intervals/rho_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
 # dfrd.to_csv(f'real data new intervals/rd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
