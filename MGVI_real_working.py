@@ -53,8 +53,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:smallerrora ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+name = 'n:smallmoreiteration2e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -204,13 +204,13 @@ R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
 
 lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
-lh_sig2 = jft.Gaussian(v2, lambda x: 1/110**2 * x).amend(R_sig2)	#7 #sinnvoller wählen !!!!
+lh_sig2 = jft.Gaussian(v2, lambda x: 1/1100**2 * x).amend(R_sig2)	#7 #sinnvoller wählen !!!!
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2
 
 ''' Optimization '''
-n_vi_iterations = 6
+n_vi_iterations = 12
 delta = 1e-4
 n_samples = 10
 
