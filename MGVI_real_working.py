@@ -37,7 +37,7 @@ am_max = 6.724
 # am_min = 6.724
 # am_max = 7.400
 z2 = 100.
-z1 = 1200.
+z1 = 1000.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -53,8 +53,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:smallmoreiteration2e ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 662 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+name = 'n:runtimeerror ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+seed = 371 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -210,7 +210,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2
 
 ''' Optimization '''
-n_vi_iterations = 12
+n_vi_iterations = 6
 delta = 1e-4
 n_samples = 10
 
@@ -252,7 +252,7 @@ samples, state = jft.optimize_kl(
         )
     ),
     sample_mode="nonlinear_resample",
-    odir=None,#"./results_test",
+    odir="./results_test",
     resume=False,
 )
 
@@ -349,11 +349,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data new intervals/rho_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data new intervals/rd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data new intervals/sigma_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data new intervals/sd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data new intervals/cf_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+# dfr.to_csv(f'real data new intervals/rho_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+# dfrd.to_csv(f'real data new intervals/rd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+# dfs.to_csv(f'real data new intervals/sigma_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+# dfsd.to_csv(f'real data new intervals/sd_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+# dfcf.to_csv(f'real data new intervals/cf_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]

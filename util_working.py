@@ -19,6 +19,18 @@ f = lambda rho_dm, params, z, u: jnp.array([u[1], \
 z0 = 0.
 u0 = jnp.array([0.,0.]) #freie Nullpunktswahl/Symmetrie
 
+
+
+
+
+
+
+
+
+
+
+
+
 #numerische Lösung (mittels Dopri5/rk4)
 @partial(jit, static_argnames=['n']) 
 def diffraxDopri5(rho_dm, params, z1, n):
@@ -34,13 +46,67 @@ def diffraxDopri5(rho_dm, params, z1, n):
                             t0=z0, t1=z1, dt0=None, y0=u0, args=(rho_dm, params), 
                             saveat=saveat,
                             adjoint=adjoint,
-                            stepsize_controller=stepsize_controller) 
-                            #throw=False, max_steps=None
+                            stepsize_controller=stepsize_controller,
+                            throw=True)
+                            #max_steps=4096)
 
     zs = sol.ts
     uz = sol.ys
 
     return uz, zs
+
+@partial(jit, static_argnames=['n3'])
+def Solver(rho_dm, params, z1, z3, u3, n3):
+
+    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
+    term = dif.ODETerm(vector_field)
+    solver = dif.Dopri5()
+    saveat = dif.SaveAt(ts=jnp.linspace(z1, z3, n3)[1:])
+    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
+    adjoint = dif.DirectAdjoint()
+
+    sol = dif.diffeqsolve(  term, solver, 
+                            t0=z1, t1=z3, dt0=None, y0=u3, args=(rho_dm, params), 
+                            saveat=saveat,
+                            adjoint=adjoint,
+                            stepsize_controller=stepsize_controller, 
+                            throw=True)
+                            #max_steps=4096)
+
+    zs_ = sol.ts
+    uz_ = sol.ys
+
+    return uz_, zs_
+
+
+# throw=False --> kein Error
+# increased max_steps by factor 16/16^2 (from default=4096) --> still error
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @partial(jit, static_argnames=['n'])
 def eigenerSolverV2(rho_dm, params, z1, n):
@@ -144,25 +210,3 @@ def surface_density(params, uz, zs):
 
     _, sd = lax.scan(scan_fn, None, uz)
     return 2*jnp.sum(sd[:-1]*(zs[1:]-zs[:-1]))
-
-@partial(jit, static_argnames=['n3'])
-def Solver(rho_dm, params, z1, z3, u3, n3):
-
-    vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper für reihenfolge
-    term = dif.ODETerm(vector_field)
-    solver = dif.Dopri5()
-    saveat = dif.SaveAt(ts=jnp.linspace(z1, z3, n3)[1:])
-    stepsize_controller = dif.PIDController(rtol=1e-3, atol=1e-6)
-    adjoint = dif.DirectAdjoint()
-
-    sol = dif.diffeqsolve(  term, solver, 
-                            t0=z1, t1=z3, dt0=None, y0=u3, args=(rho_dm, params), 
-                            saveat=saveat,
-                            adjoint=adjoint,
-                            stepsize_controller=stepsize_controller) 
-                            #throw=False, max_steps=None
-
-    zs_ = sol.ts
-    uz_ = sol.ys
-
-    return uz_, zs_
