@@ -192,8 +192,11 @@ class ForwardModel(jft.Model):
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
+            m = uz_[-1,1]
+            b = uz_[-1,0] - m*zs_[-1]
+            correction = jnp.sum(params[:,0] * params[:,1]**2/m * jnp.exp(-(m*zs_[-1]+b)/params[:,1]**2))
+            surface_density_calc = surface_density_calc + correction
 
-            return integral * norm/jnp.sum(integral), surface_density_calc, sig2
         dfo, sd, sig2 = complicated_function(rs, ss, rdm, cf)
         return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2})
 
