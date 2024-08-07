@@ -197,6 +197,7 @@ class ForwardModel(jft.Model):
             correction = jnp.sum(params[:,0] * params[:,1]**2/m * jnp.exp(-(m*zs_[-1]+b)/params[:,1]**2))
             surface_density_calc = surface_density_calc + correction
 
+            return integral * norm/jnp.sum(integral), surface_density_calc, sig2
         dfo, sd, sig2 = complicated_function(rs, ss, rdm, cf)
         return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2})
 
