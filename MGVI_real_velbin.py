@@ -31,12 +31,12 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-# am_min = 6.000
-# am_max = 6.724
-am_min = 6.724
-am_max = 7.400
+am_min = 6.000
+am_max = 6.724
+# am_min = 6.724
+# am_max = 7.400
 z2 = 100.
-z1 = 1400.
+z1 = 1800.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -52,8 +52,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:erroralsar ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 196 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+name = 'n:it18a ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -214,7 +214,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2
 
 ''' Optimization '''
-n_vi_iterations = 12
+n_vi_iterations = 18
 delta = 1e-4
 n_samples = 10
 
