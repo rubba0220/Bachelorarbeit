@@ -31,10 +31,10 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 6.000
-am_max = 6.724
-# am_min = 6.724
-# am_max = 7.400
+# am_min = 6.000
+# am_max = 6.724
+am_min = 6.724
+am_max = 7.400
 z2 = 100.
 z1 = 1200.
 z3 = 5000.
@@ -53,7 +53,7 @@ n_bins = int(len(bins)-1)
 
 ''' Run '''
 name = 'n:error50 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
-seed = 42 #[42, 80, 196, 371, 662] #80 macht Probleme #662
+seed = 196 #[42, 80, 196, 371, 662] #80 macht Probleme #662
 interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -130,14 +130,17 @@ if interval == 'pos':
     data = data[i2:i1]
     z_v2 = z_v2[vel_pos]
     vz_vars = vz_vars[vel_pos]
+    evz_vars = evz_vars[vel_pos]
 elif interval == 'neg':
     data = np.flip(data)[i2:i1]
     z_v2 = abs(z_v2[vel_neg])
     vz_vars = vz_vars[vel_neg]
+    evz_vars = evz_vars[vel_neg]
 elif interval == 'both':
     data = np.flip(data)[i2:i1] + data[i2:i1]
     z_v2 = abs(z_v2)
     vz_vars = vz_vars
+    evz_vars = evz_vars
 
 ''' Forward Model '''
 norm = jnp.sum(data)
