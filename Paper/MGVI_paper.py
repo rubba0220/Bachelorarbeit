@@ -8,11 +8,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import util_working as util
-
+import sys
+import os
 import importlib
 import time
-import sys
+current_dir = os.path.abspath('')
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(parent_dir)
+
+import util_working as util
 
 jnp.set_printoptions(threshold=sys.maxsize)
 importlib.reload(util)
@@ -31,11 +35,11 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-z2 = 200.
+z2 = 300.
 z1 = 1200.
 z3 = 5000.
 
-bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+bins = np.array([300., 400., 500., 600., 700., 800., 900., 1000., 1100., 1200.])
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -43,104 +47,45 @@ z2 = bins[i2]
 z1 = bins[i1]
 n = int(z1)+1
 n3 = int(z3-z1)+1
-
 bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it25samp30f ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 960 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662
-interval = 'neg'
+name = 'Paper data c' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 196 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662
 
-poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
-poly_sq = (20./1200., 17.)
-poly_sqrt = (400.**2/1200, 300.**2/2)
-poly_lin = (700./1500, 300.)
-poly_lin2 = (2200./1500, 300.)
-# run = 'cf'
-# run = 'exp(cf)'
-run = 'rough_func'
-# label = ''
-label = 'fit'
-# label = 'readsq'
-# label = 'readsqrt'
-# label = 'readlin'
-# label = 'readlin2'
+poly = (1400./1200., 290.)
 
 ''' Correlated Field '''
 dims = (n, )
 
-if run == 'cf':
-    cf_zm = dict(offset_mean=800., offset_std=(500., 500.))
-    cf_fl = dict(   fluctuations=(300., 300.), 
-                    loglogavgslope=(-3., 3.),
-                    flexibility=(1e-3, 1e-16),
-                    asperity=(1e-3, 1e-16),)
-
-if run == 'exp(cf)':
-    cf_zm = dict(offset_mean=6.5, offset_std=(2.5, 2.5))
-    cf_fl = dict(   fluctuations=(1.5, 1.5),#7 direkt conjugate gradient failed
-                    loglogavgslope=(-3., 3.),
-                    flexibility=(1e-3, 1e-16),
-                    asperity=(1e-3, 1e-16),)
-
-if run == 'rough_func':                                 #old #new #newer(seeds)
-    cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #0.3/0.3 #0.5/0.5 #0.3/0.3
-    cf_fl = dict(   fluctuations=(0.5, 0.3), #1/1 #1/1 #0.5/0.3
-                    loglogavgslope=(-3., 0.5), #-5/2 #-3/0.5 #-3/0.5
-                    flexibility=(1e-3, 1e-16),
-                    asperity=(1e-3, 1e-16),)
+                               #old #new #newer(seeds)
+cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #0.3/0.3 #0.5/0.5 #0.3/0.3
+cf_fl = dict(   fluctuations=(0.5, 0.3), #1/1 #1/1 #0.5/0.3
+                loglogavgslope=(-3., 0.5), #-5/2 #-3/0.5 #-3/0.5
+                flexibility=(1e-3, 1e-16),
+                asperity=(1e-3, 1e-16),)
 
 cfm = jft.CorrelatedFieldMaker("cf")
 cfm.set_amplitude_total_offset(**cf_zm)
 cfm.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
 correlated_field = cfm.finalize()
 
-if run == 'rough_func':
-    if label == 'fit':
-        m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
-        b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
-    elif label == 'readsq':
-        m_poly = jft.LogNormalPrior(poly_sq[0], 0.2*poly_sq[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly_sq[1], 0.2*poly_sq[1], name="b_steig", shape=(1,))
-    elif label == 'readsqrt':
-        m_poly = jft.LogNormalPrior(poly_sqrt[0], 0.2*poly_sqrt[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly_sqrt[1], 0.2*poly_sqrt[1], name="b_steig", shape=(1,))
-    elif label == 'readlin':
-        m_poly = jft.LogNormalPrior(poly_lin[0], 0.2*poly_lin[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly_lin[1], 0.2*poly_lin[1], name="b_steig", shape=(1,))
-    elif label == 'readlin2':
-        m_poly = jft.LogNormalPrior(poly_lin2[0], 0.2*poly_lin2[0], name="m_steig", shape=(1,))
-        b_poly = jft.LogNormalPrior(poly_lin2[1], 0.2*poly_lin2[1], name="b_steig", shape=(1,))
+m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
+b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
 ''' Data '''
-data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
-df_v2 = pd.read_csv(f'real data new intervals/v2_bin_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
-z_v2 = jnp.array(df_v2["z"].values)
-vz_vars = jnp.array(df_v2["vz_vars"].values)
-evz_vars = jnp.array(df_v2["evz_vars"].values)
-vel_pos = np.where(z_v2>=0)
-vel_neg = np.where(z_v2<0)
+data = np.array([1, 0.53, 0.33, 0.23, 0.16, 0.11, 0.09, 0.07, 0.06])*2000
+data = np.round(data, 0)
+data = data.astype(int)
 
-if interval == 'pos':
-    data = data[i2:i1]
-    z_v2 = z_v2[vel_pos]
-    vz_vars = vz_vars[vel_pos]
-    evz_vars = evz_vars[vel_pos]
-elif interval == 'neg':
-    data = np.flip(data)[i2:i1]
-    z_v2 = abs(z_v2[vel_neg])
-    vz_vars = vz_vars[vel_neg]
-    evz_vars = evz_vars[vel_neg]
-elif interval == 'both':
-    data = np.flip(data)[i2:i1] + data[i2:i1]
-    z_v2 = abs(z_v2)
-    vz_vars = vz_vars
-    evz_vars = evz_vars
+z_v2 = np.array([350, 450, 550, 650, 750, 850, 950, 1050, 1150])
+vz_vars = np.array([21., 27., 27., 27., 28., 30., 33., 36., 36.])**2
+evz_vars = 2*np.sqrt(vz_vars)*np.array([2., 3., 3., 3., 4., 6., 8., 10., 12.])
 
 ''' Forward Model '''
 norm = jnp.sum(data)
-string = f'z2:{z2} z1:{z1} data:{interval}'
+string = f'z2:{z2} z1:{z1} data:fromPaper'
 
 class ForwardModel(jft.Model):
     def __init__(self):
@@ -148,34 +93,20 @@ class ForwardModel(jft.Model):
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
         self.correlated_field = correlated_field
-        if run == 'rough_func':
-            self.m_poly = m_poly
-            self.b_poly = b_poly
+        self.m_poly = m_poly
+        self.b_poly = b_poly
 
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
-        else:
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init)
+        super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
 
     @jit
     def __call__(self, x):
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
-        if run == 'cf':
-            cf = self.correlated_field(x)
-        if run == 'exp(cf)':
-            cf = jnp.exp(self.correlated_field(x))
-        if run == 'rough_func':
-            m = self.m_poly(x)
-            b = self.b_poly(x)
-            if label == 'fit' or label == 'readlin' or label == 'readlin2':
-                rough_func = (b + m*jnp.linspace(0, z1, n))
-            elif label == 'readsq':
-                rough_func = (b + m*jnp.linspace(0, z1, n))**2
-            elif label == 'readsqrt':
-                rough_func = jnp.sqrt(b + m*jnp.linspace(0, z1, n))
-            
-            cf = rough_func * jnp.exp(self.correlated_field(x))
+        m = self.m_poly(x)
+        b = self.b_poly(x)
+        rough_func = (b + m*jnp.linspace(0, z1, n))
+        cf = rough_func * jnp.exp(self.correlated_field(x))
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
@@ -204,7 +135,7 @@ R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
 
 lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
-lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)	#sinnvoller wählen !!!!
+lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)	
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2
@@ -212,7 +143,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 ''' Optimization '''
 n_vi_iterations = 25
 delta = 1e-4
-n_samples = 30
+n_samples = 10
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
@@ -268,21 +199,11 @@ results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
 results["rhodm"] = jft.mean_and_std(results["rhosdm"])
 results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
 results["surfd"] = jft.mean_and_std(results["surfds"])
-if run == 'rough_func':
-    print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
-    print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
 
-if run == 'cf':
-    Sigma_sq = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
-elif run == 'exp(cf)':
-    Sigma_sq = jft.mean_and_std(tuple(jnp.exp(correlated_field(s)) for s in samples))
-elif run == 'rough_func':
-    if label == 'fit' or label == 'readlin' or label == 'readlin2':
-        Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
-    if label == 'readsq':
-        Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n))**2 * jnp.exp(correlated_field(s)) for s in samples))
-    if label == 'readsqrt':
-        Sigma_sq = jft.mean_and_std(tuple(jnp.sqrt(b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
+print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
+print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
+
+Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
 
 meanr = [results[f'rho{k+1}'][0] for k in range(15)] 
@@ -350,11 +271,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data new intervals/rho_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data new intervals/rd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data new intervals/sigma_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data new intervals/sd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data new intervals/cf_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'./rho_paper.csv', mode='a', header=False)
+dfrd.to_csv(f'./rd_paper.csv', mode='a', header=False)
+dfs.to_csv(f'./sigma_paper.csv', mode='a', header=False)
+dfsd.to_csv(f'./sd_paper.csv', mode='a', header=False)
+dfcf.to_csv(f'./cf_paper.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
@@ -378,15 +299,6 @@ for ax, v in zip(axs.flat, to_plot):
         ax.plot(grid, field[0]+field[1], alpha=0.5)
         ax.plot(grid, field[0]-field[1], alpha=0.5)
         ax.plot(grid, poly[0]*grid+poly[1])
-        if label == 'readsq':
-            ax.plot(grid, (poly_sq[1] + poly_sq[0]*grid)**2)
-        elif label == 'readsqrt':
-            ax.plot(grid, jnp.sqrt(poly_sqrt[1] + poly_sqrt[0]*grid))
-        elif label == 'readlin':
-            ax.plot(grid, poly_lin[1] + poly_lin[0]*grid)
-        elif label == 'readlin2':
-            ax.plot(grid, poly_lin2[1] + poly_lin2[0]*grid)
-        ax.sharex(axs[0])
     elif tp == 'plot2':
         ax.plot(grid, field[0])
         ax.plot(grid, field[0]+field[1], alpha=0.5)
