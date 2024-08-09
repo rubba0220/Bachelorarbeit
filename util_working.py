@@ -47,11 +47,13 @@ def diffraxDopri5(rho_dm, params, z1, n):
                             saveat=saveat,
                             adjoint=adjoint,
                             stepsize_controller=stepsize_controller,
-                            throw=True)
+                            throw=False)
                             #max_steps=4096)
 
     zs = sol.ts
     uz = sol.ys
+
+    jax.debug.print('{} {} {}', sol.result, rho_dm, )
 
     return uz, zs
 
