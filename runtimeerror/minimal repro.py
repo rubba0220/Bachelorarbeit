@@ -82,12 +82,10 @@ norm = jnp.sum(data)
 def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
             rho_dm = rho_dm[0]
-
             uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, (0,0), cf, jnp.array([1,2,3,4,5]))
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
-
             return integral * norm/jnp.sum(integral)
 
 class ForwardModel(jft.Model):
@@ -186,7 +184,32 @@ if inference:
         callback=callback,
         sample_mode="nonlinear_resample",
         odir="./results_test",
-        resume=False)
+        resume=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 else:
     s = jft.Vector(
