@@ -31,16 +31,16 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-# am_min = 6.000
-# am_max = 6.724
-am_min = 6.724
-am_max = 7.400
-z2 = 600.
+am_min = 6.000
+am_max = 6.724
+# am_min = 6.724
+# am_max = 7.400
+z2 = 200.
 z1 = 1600.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
-
+len_bins = len(bins)
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
 z2 = bins[i2]
@@ -52,8 +52,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it25newerseed ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 196 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
+name = 'n:testplx ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
 interval = 'pos'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -118,7 +118,9 @@ if run == 'rough_func':
         b_poly = jft.LogNormalPrior(poly_lin2[1], 0.2*poly_lin2[1], name="b_steig", shape=(1,))
 
 ''' Data '''
-data = np.loadtxt(f'real data new intervals/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
+df_z = pd.read_csv(f'real data new intervals/plx_{am_min*1000:.0f}{am_max*1000:.0f}.csv')
+z_data = jnp.array(df_z["z"])
+ez_data = jnp.array(df_z["ez"])
 df_v2 = pd.read_csv(f'real data new intervals/v2_bin_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 vz_vars = jnp.array(df_v2["vz_vars"].values)
@@ -127,27 +129,30 @@ vel_pos = np.where(z_v2>=0)
 vel_neg = np.where(z_v2<0)
 
 if interval == 'pos':
-    data = data[i2:i1]
+    bins = bins
+    # pos = np.where(z_data>=0)
+    # z_data = z_data[pos]
+    # ez_data = ez_data[pos]
     z_v2 = z_v2[vel_pos]
     vz_vars = vz_vars[vel_pos]
     evz_vars = evz_vars[vel_pos]
 elif interval == 'neg':
-    data = np.flip(data)[i2:i1]
+    bins = np.flip(-bins)
+    # neg = np.where(z_data<0)
+    # z_data = jnp.abs(z_data[neg])
+    # ez_data = ez_data[neg]
     z_v2 = abs(z_v2[vel_neg])
     vz_vars = vz_vars[vel_neg]
     evz_vars = evz_vars[vel_neg]
-elif interval == 'both':
-    data = np.flip(data)[i2:i1] + data[i2:i1]
-    z_v2 = abs(z_v2)
-    vz_vars = vz_vars
-    evz_vars = evz_vars
+
+z_prior = jft.UniformPrior(z_data, ez_data, name="z_data", shape=(len(z_data),))
 
 ''' Forward Model '''
-norm = jnp.sum(data)
 string = f'z2:{z2} z1:{z1} data:{interval}'
 
 class ForwardModel(jft.Model):
     def __init__(self):
+        self.z_prior = z_prior
         self.rho_s = rho_s
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
@@ -156,12 +161,13 @@ class ForwardModel(jft.Model):
             self.m_poly = m_poly
             self.b_poly = b_poly
 
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
+            super().__init__(init =  self.z_prior.init | self.rho_s.init | self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
         else:
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init)
+            super().__init__(init =  self.z_prior.init | self.rho_s.init | self.sigma_s.init | self.rho_dm.init | self.correlated_field.init)
 
     @jit
     def __call__(self, x):
+        zzz = self.z_prior(x)
         rs = self.rho_s(x)
         ss = self.sigma_s(x)
         rdm = self.rho_dm(x)
@@ -181,7 +187,12 @@ class ForwardModel(jft.Model):
             
             cf = rough_func * jnp.exp(self.correlated_field(x))
 
-        def complicated_function(rho_s, sigma_s, rho_dm, cf):
+        def complicated_function(z_prior, rho_s, sigma_s, rho_dm, cf):
+            data, _ = jnp.histogram(z_prior, bins=bins)
+            if interval == 'neg':
+                data = np.flip(data)
+            norm = jnp.sum(data)
+
             params = jnp.column_stack((rho_s, sigma_s))
             rho_dm = rho_dm[0]
 
@@ -197,20 +208,21 @@ class ForwardModel(jft.Model):
             correction = jnp.sum(params[:,0] * params[:,1]**2/m * jnp.exp(-(m*zs_[-1]+b)/params[:,1]**2))
             surface_density_calc = surface_density_calc + correction
 
-            return integral * norm/jnp.sum(integral), surface_density_calc, sig2
-        dfo, sd, sig2 = complicated_function(rs, ss, rdm, cf)
-        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2})
+            return integral * norm/jnp.sum(integral), surface_density_calc, sig2, data
+        dfo, sd, sig2, data = complicated_function(zzz, rs, ss, rdm, cf)
+        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2, 'data': data})
 
 fwd = ForwardModel()
 R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
 R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
+R_data = jft.Model(lambda x: x['data'], domain=fwd.target)
 
-lh_dfo = jft.Poissonian(data).amend(R_dfo)
+# lh_dfo = jft.Poissonian(R_data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)	#sinnvoller wählen !!!!
 
-lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
+lh = (jft.Poissonian(R_data).amend(R_dfo) + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2
 
 ''' Optimization '''
@@ -354,11 +366,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data new intervals/rho_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data new intervals/rd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data new intervals/sigma_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data new intervals/sd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data new intervals/cf_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'real data new intervals/rho_test_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'real data new intervals/rd_test_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'real data new intervals/sigma_test_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'real data new intervals/sd_test_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfcf.to_csv(f'real data new intervals/cf_test_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
