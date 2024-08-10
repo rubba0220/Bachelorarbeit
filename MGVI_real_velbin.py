@@ -31,12 +31,14 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
+am_min = 5.000
+am_max = 6.000
 # am_min = 6.000
 # am_max = 6.724
-am_min = 6.724
-am_max = 7.400
-z2 = 120.
-z1 = 850.
+# am_min = 6.724
+# am_max = 7.400
+z2 = 600.
+z1 = 1800.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
