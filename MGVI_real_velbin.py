@@ -31,12 +31,12 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-# am_min = 6.000
-# am_max = 6.724
-am_min = 6.724
-am_max = 7.400
-z2 = 600.
-z1 = 1600.
+am_min = 6.000
+am_max = 6.724
+# am_min = 6.724
+# am_max = 7.400
+z2 = 100.
+z1 = 1800.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -52,8 +52,8 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it25newerseed ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 196 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
+name = 'n:massconstraint ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
 interval = 'pos'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -197,21 +197,24 @@ class ForwardModel(jft.Model):
             correction = jnp.sum(params[:,0] * params[:,1]**2/m * jnp.exp(-(m*zs_[-1]+b)/params[:,1]**2))
             surface_density_calc = surface_density_calc + correction
 
-            return integral * norm/jnp.sum(integral), surface_density_calc, sig2
-        dfo, sd, sig2 = complicated_function(rs, ss, rdm, cf)
-        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2})
+            return integral * norm/jnp.sum(integral), surface_density_calc, sig2, jnp.sum(params[:,0])
+        dfo, sd, sig2, rho = complicated_function(rs, ss, rdm, cf)
+        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2, 'rho': rho})
 
 fwd = ForwardModel()
 R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
 R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
+R_rho = jft.Model(lambda x: x['rho'], domain=fwd.target)
 
 lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
-lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)	#sinnvoller wählen !!!!
+lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)
+lh_rho = jft.Gaussian(0.0914, lambda x: 1/0.014**2 * x).amend(R_rho)
+#sinnvoller wählen !!!!
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
-#lh_dfo + lh_sd + lh_sig2
+#lh_dfo + lh_sd + lh_sig2  + lh_rho
 
 ''' Optimization '''
 n_vi_iterations = 25
