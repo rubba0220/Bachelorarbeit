@@ -37,8 +37,8 @@ am_max = 6.000
 # am_max = 6.724
 # am_min = 6.724
 # am_max = 7.400
-z2 = 600.
-z1 = 1800.
+z2 = 500.
+z1 = 1600.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -56,7 +56,7 @@ n_bins = int(len(bins)-1)
 ''' Run '''
 name = 'n:final ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
-interval = 'neg'
+interval = 'pos'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
@@ -219,7 +219,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2  + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 25
+n_vi_iterations = 40
 delta = 1e-4
 n_samples = 10
 
