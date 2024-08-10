@@ -31,12 +31,12 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-am_min = 6.000
-am_max = 6.724
-# am_min = 6.724
-# am_max = 7.400
-z2 = 100.
-z1 = 1800.
+# am_min = 6.000
+# am_max = 6.724
+am_min = 6.724
+am_max = 7.400
+z2 = 120.
+z1 = 850.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -52,9 +52,9 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:massconstraint ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+name = 'n:final ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
-interval = 'pos'
+interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
