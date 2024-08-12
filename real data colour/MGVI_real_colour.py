@@ -8,11 +8,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import util_working as util
-
+import sys
+import os
 import importlib
 import time
-import sys
+current_dir = os.path.abspath('')
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(parent_dir)
+
+import util_working as util
 
 jnp.set_printoptions(threshold=sys.maxsize)
 importlib.reload(util)
@@ -34,10 +38,10 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 am_min = 6.000
 am_max = 7.400
 z2 = 120.
-z1 = 1200.
+z1 = 850.
 z3 = 5000.
 
-bins = np.loadtxt(f'real data colour/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+bins = np.loadtxt(f'bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -51,10 +55,10 @@ n_bins = int(len(bins)-1)
 
 ''' Run '''
 name = 'n:test ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 42 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
-interval = 'pos'
+seed = 196 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
+interval = 'neg'
 
-poly = np.loadtxt(f'real data colour/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+poly = np.loadtxt(f'poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
 poly_sqrt = (400.**2/1200, 300.**2/2)
 poly_lin = (700./1500, 300.)
@@ -87,9 +91,9 @@ if run == 'exp(cf)':
                     asperity=(1e-3, 1e-16),)
 
 if run == 'rough_func':                                 #old #new #newer(seeds)
-    cf_zm = dict(offset_mean=0., offset_std=(0.3, 0.3)) #0.3/0.3 #0.5/0.5 #0.3/0.3
-    cf_fl = dict(   fluctuations=(0.5, 0.2), #1/1 #1/1 #0.5/0.3
-                    loglogavgslope=(-3., 0.3), #-5/2 #-3/0.5 #-3/0.5
+    cf_zm = dict(offset_mean=0., offset_std=(0.2, 0.2)) #0.3/0.3 #0.5/0.5 #0.3/0.3
+    cf_fl = dict(   fluctuations=(0.3, 0.2), #1/1 #1/1 #0.5/0.3
+                    loglogavgslope=(-4., 0.3), #-5/2 #-3/0.5 #-3/0.5
                     flexibility=(1e-3, 1e-16),
                     asperity=(1e-3, 1e-16),)
 
@@ -116,8 +120,8 @@ if run == 'rough_func':
         b_poly = jft.LogNormalPrior(poly_lin2[1], 0.2*poly_lin2[1], name="b_steig", shape=(1,))
 
 ''' Data '''
-data = np.loadtxt(f'real data colour/n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
-df_v2 = pd.read_csv(f'real data colour/v2_bin_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
+data = np.loadtxt(f'n_{am_min*1000:.0f}{am_max*1000:.0f}.txt', dtype='int')
+df_v2 = pd.read_csv(f'v2_bin_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 vz_vars = jnp.array(df_v2["vz_vars"].values)
 evz_vars = jnp.array(df_v2["evz_vars"].values)
@@ -355,11 +359,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'real data colour/rho_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfrd.to_csv(f'real data colour/rd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfs.to_csv(f'real data colour/sigma_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfsd.to_csv(f'real data colour/sd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
-dfcf.to_csv(f'real data colour/cf_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfr.to_csv(f'rho_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfrd.to_csv(f'rd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfs.to_csv(f'sigma_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfsd.to_csv(f'sd_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
+dfcf.to_csv(f'cf_bin_{am_min*1000:.0f}{am_max*1000:.0f}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
