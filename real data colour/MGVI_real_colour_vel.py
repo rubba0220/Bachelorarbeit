@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:vglvel ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
+name = 'n:Unfug ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ']
 seed = 42 #[42, 80, 196, 371, 662]
 interval = 'neg'
 
@@ -299,7 +299,7 @@ dfsd.to_csv(f'results/sd_bin_{subsample}.csv', mode='a', header=False)
 dfcf.to_csv(f'results/cf_bin_{subsample}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
-to_plot = [("Data", v2, 'scatter'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
+to_plot = [("Data", jnp.log(v2), 'scatter'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
 
 fig, axs = plt.subplots(3, 1, figsize=(20, 20))
 grid = jnp.linspace(0, z1, n)
@@ -309,7 +309,7 @@ for ax, v in zip(axs.flat, to_plot):
     ax.grid()
     if tp == 'scatter':
         ax.scatter(z_v2, field, marker='.')
-        ax.plot(z_v2, poly[0]*z_v2+poly[1])
+        ax.plot(z_v2, jnp.log(poly[0]*z_v2+poly[1]))
         ax.sharex(axs[0])
     elif tp == 'errorbar':
         ax.errorbar(z_v2, field[0], yerr=field[1], fmt='o', ecolor='r')
