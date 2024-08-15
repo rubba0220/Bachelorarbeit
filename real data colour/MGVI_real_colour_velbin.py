@@ -1,4 +1,4 @@
-#MGVI_real.py
+#colour: vel data via binning/gaussian
 import jax
 import jax.numpy as jnp
 from jax import jit, random
@@ -35,12 +35,12 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-subsample = 'full_o1u1'
+subsample = 'full_o1m4'
 z2 = 120.
-z1 = 1100.
+z1 = 1150.
 z3 = 5000.
 
-bins = np.loadtxt(f'bins_{subsample}.txt')
+bins = np.loadtxt(f'data/bins_{subsample}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -53,15 +53,11 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:seede ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 662 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
+name = 'n:vglvelbin ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 42 #[42, 80, 196, 371, 662, 960]
 interval = 'neg'
 
-poly = np.loadtxt(f'poly_{subsample}.txt')
-poly_sq = (20./1200., 17.)
-poly_sqrt = (400.**2/1200, 300.**2/2)
-poly_lin = (700./1500, 300.)
-poly_lin2 = (2200./1500, 300.)
+poly = np.loadtxt(f'data/poly_{subsample}.txt')
 
 ''' Correlated Field '''
 dims = (n, )
@@ -81,8 +77,8 @@ m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0
 b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
 ''' Data '''
-data = np.loadtxt(f'n_{subsample}.txt', dtype='int')
-df_v2 = pd.read_csv(f'v2_bin_{subsample}.txt')
+data = np.loadtxt(f'data/n_{subsample}.txt', dtype='int')
+df_v2 = pd.read_csv(f'data/v2_bin_{subsample}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 vz_vars = jnp.array(df_v2["vz_vars"].values)
 evz_vars = jnp.array(df_v2["evz_vars"].values)
@@ -162,10 +158,9 @@ lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)
 # lh_rho = jft.Gaussian(0.0914, lambda x: 1/0.014**2 * x).amend(R_rho)
-#sinnvoller wählen !!!!
 
 lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
-#lh_dfo + lh_sd + lh_sig2  + lh_rho
+#lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
 n_vi_iterations = 25
@@ -297,11 +292,11 @@ dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'rho_bin_{subsample}.csv', mode='a', header=False)
-dfrd.to_csv(f'rd_bin_{subsample}.csv', mode='a', header=False)
-dfs.to_csv(f'sigma_bin_{subsample}.csv', mode='a', header=False)
-dfsd.to_csv(f'sd_bin_{subsample}.csv', mode='a', header=False)
-dfcf.to_csv(f'cf_bin_{subsample}.csv', mode='a', header=False)
+dfr.to_csv(f'results/rho_bin_{subsample}.csv', mode='a', header=False)
+dfrd.to_csv(f'results/rd_bin_{subsample}.csv', mode='a', header=False)
+dfs.to_csv(f'results/sigma_bin_{subsample}.csv', mode='a', header=False)
+dfsd.to_csv(f'results/sd_bin_{subsample}.csv', mode='a', header=False)
+dfcf.to_csv(f'results/cf_bin_{subsample}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
