@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:withunc ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+name = 'n:withuncit30 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960]
 interval = 'pos'
 unc = True
@@ -121,11 +121,11 @@ class ForwardModel(jft.Model):
         self.m_poly = m_poly
         self.b_poly = b_poly
 
-        if unc:
+        if unc == True:
             self.uncertainty = uncertainty
             
             super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init | self.uncertainty.init)
-        else:
+        elif unc == False:
             super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
 
     @jit
@@ -136,10 +136,10 @@ class ForwardModel(jft.Model):
         m = self.m_poly(x)
         b = self.b_poly(x)
 
-        if unc:
+        if unc == True:
             ef = self.uncertainty(x)
         
-        else:
+        elif unc == False:
             ef = jnp.ones_like(data)
 
         rough_func = (b + m*jnp.linspace(0, z1, n))
@@ -181,7 +181,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2  + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 25
+n_vi_iterations = 30#25
 delta = 1e-4
 n_samples = 10
 
@@ -237,13 +237,19 @@ for k in range(15):
     exec(f'results["sigma{k+1}"] = jft.mean_and_std(results["sigmas{k+1}"])')
 results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
 results["rhodm"] = jft.mean_and_std(results["rhosdm"])
-results["surfds"] = tuple((fwd(s))['sd'] for s in samples)
+results["surfds"] = tuple(fwd(s)['sd'].tolist() for s in samples)
 results["surfd"] = jft.mean_and_std(results["surfds"])
 print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
 print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
 
 Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+
+dfo = jft.mean_and_std(tuple(fwd(s)["dfo"] for s in samples))
+if unc == True:
+    errorfreedom = jft.mean_and_std(tuple(uncertainty(s) for s in samples))
+else:
+    errorfreedom = (jnp.ones_like(data), jnp.zeros_like(data))
 
 meanr = [results[f'rho{k+1}'][0] for k in range(15)] 
 stdr = [results[f'rho{k+1}'][1] for k in range(15)] 
@@ -262,7 +268,7 @@ data_rd = {
     "Run": [name + f'rho_dm ' + string],
     "Inferred Value rho": meanrd,
     "Standard Deviation rho": stdrd,
-    "Samples rho": [results['rhosdm']]
+    "Samples rho": [results['rhosdm']],
 }
 
 means = [results[f'sigma{k+1}'][0] for k in range(15)]
@@ -287,12 +293,18 @@ data_sd = {
 
 data_cf = {
     "Run": [name + 'corrfield ' + string],
-    "Data": [vz_vars],
     "Inferred Value cf": [corrfield[0]],
     "Standard Deviation cf": [corrfield[1]],
     "Inferred Value Sigma_sq": [Sigma_sq[0]],
     "Standard Deviation Sigma_sq": [Sigma_sq[1]],
-    "Error Data": [evz_vars],
+}
+
+data_dfo = {
+    "Run": [name + 'dfo ' + string],
+    "Inferred Value ef": [errorfreedom[0]],
+    "Standard Deviation ef": [errorfreedom[1]],
+    "Inferred Value dfo": [dfo[0]],
+    "Standard Deviation dfo": [dfo[1]],
 }
 
 t1 = time.time()
@@ -308,6 +320,8 @@ dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
+dfdfo = pd.DataFrame(data_dfo)
+dfdfo.set_index('Run', inplace=True)
 
 ''' Save Results '''
 dfr.to_csv(f'results/rho_bin_{subsample}.csv', mode='a', header=False)
@@ -315,6 +329,7 @@ dfrd.to_csv(f'results/rd_bin_{subsample}.csv', mode='a', header=False)
 dfs.to_csv(f'results/sigma_bin_{subsample}.csv', mode='a', header=False)
 dfsd.to_csv(f'results/sd_bin_{subsample}.csv', mode='a', header=False)
 dfcf.to_csv(f'results/cf_bin_{subsample}.csv', mode='a', header=False)
+dfdfo.to_csv(f'results/dfo_bin_{subsample}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
