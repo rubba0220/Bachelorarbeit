@@ -37,11 +37,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 subsample = 'full_o1m4'
 z2 = 120.
-<<<<<<< HEAD:real data colour/MGVI_real_colour_velbin.py
-z1 = 1150.
-=======
 z1 = 850.
->>>>>>> Parallax-over-error-via-additional-error-prior:real data colour/MGVI_real_colour.py
 z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
@@ -57,16 +53,10 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-<<<<<<< HEAD:real data colour/MGVI_real_colour_velbin.py
-name = 'n:vglvelbin ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 42 #[42, 80, 196, 371, 662, 960]
-interval = 'neg'
-=======
 name = 'n:withuncit45 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960]
 interval = 'pos'
 unc = True
->>>>>>> Parallax-over-error-via-additional-error-prior:real data colour/MGVI_real_colour.py
 
 poly = np.loadtxt(f'data/poly_{subsample}.txt')
 
@@ -89,10 +79,7 @@ b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
 ''' Data '''
 data = np.loadtxt(f'data/n_{subsample}.txt', dtype='int')
-<<<<<<< HEAD:real data colour/MGVI_real_colour_velbin.py
-=======
 edata = np.loadtxt(f'data/n_std_{subsample}.txt', dtype='float')/np.loadtxt(f'data/n_mean_{subsample}.txt', dtype='float')
->>>>>>> Parallax-over-error-via-additional-error-prior:real data colour/MGVI_real_colour.py
 df_v2 = pd.read_csv(f'data/v2_bin_{subsample}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 vz_vars = jnp.array(df_v2["vz_vars"].values)
@@ -342,10 +329,7 @@ dfrd.to_csv(f'results/rd_bin_{subsample}.csv', mode='a', header=False)
 dfs.to_csv(f'results/sigma_bin_{subsample}.csv', mode='a', header=False)
 dfsd.to_csv(f'results/sd_bin_{subsample}.csv', mode='a', header=False)
 dfcf.to_csv(f'results/cf_bin_{subsample}.csv', mode='a', header=False)
-<<<<<<< HEAD:real data colour/MGVI_real_colour_velbin.py
-=======
 dfdfo.to_csv(f'results/dfo_bin_{subsample}.csv', mode='a', header=False)
->>>>>>> Parallax-over-error-via-additional-error-prior:real data colour/MGVI_real_colour.py
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
