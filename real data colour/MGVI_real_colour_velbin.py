@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:withuncit45otherargs ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+name = 'n:withuncit60 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960]
 interval = 'pos'
 unc = True
@@ -181,7 +181,7 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 45#25
+n_vi_iterations = 60#25
 delta = 1e-4
 n_samples = 10
 
@@ -205,7 +205,7 @@ samples, state = jft.optimize_kl(
     # Arguments for the conjugate gradient method used to drawing samples from an implicit covariance matrix
     draw_linear_kwargs=dict(
         cg_name="SL",
-        cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=200),
+        cg_kwargs=dict(absdelta=delta * jft.size(lh.domain) / 10.0, maxiter=100),
     ),
     # Arguements for the minimizer in the nonlinear updating of the samples
     nonlinearly_update_kwargs=dict(
@@ -213,13 +213,13 @@ samples, state = jft.optimize_kl(
             name="SN",
             xtol=delta,
             cg_kwargs=dict(name=None),
-            maxiter=10,
+            maxiter=5,
         )
     ),
     # Arguments for the minimizer of the KL-divergence cost potential
     kl_kwargs=dict(
         minimize_kwargs=dict(
-            name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=70
+            name="M", xtol=delta, cg_kwargs=dict(name=None), maxiter=35
         )
     ),
     sample_mode="nonlinear_resample",
