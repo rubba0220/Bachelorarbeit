@@ -37,7 +37,7 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 subsample = 'full_o1m4'
 z2 = 120.
-z1 = 1450.
+z1 = 850.
 z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
@@ -53,10 +53,10 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:withuncit60 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+name = 'n:withuncoutit60 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
 seed = 42 #[42, 80, 196, 371, 662, 960]
 interval = 'pos'
-unc = True
+unc = False
 
 poly = np.loadtxt(f'data/poly_{subsample}.txt')
 
