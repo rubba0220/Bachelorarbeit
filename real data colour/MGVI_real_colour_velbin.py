@@ -36,8 +36,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
 subsample = 'full_o1m4'
-z2 = 120.
-z1 = 850.
+z2 = 200.
+z1 = 800.
 z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
@@ -53,10 +53,10 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:withuncoutit60 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 42 #[42, 80, 196, 371, 662, 960]
+name = 'n:it100samp15smooth '
+seed = 42
 interval = 'pos'
-unc = False
+unc = True
 
 poly = np.loadtxt(f'data/poly_{subsample}.txt')
 
@@ -65,7 +65,7 @@ dims = (n, )
                              #old #new #newer(seeds)
 cf_zm = dict(offset_mean=0., offset_std=(0.2, 0.2)) #0.3/0.3 #0.5/0.5 #0.3/0.3
 cf_fl = dict(   fluctuations=(0.5, 0.3), #1/1 #1/1 #0.5/0.3
-                loglogavgslope=(-3., 0.5), #-5/2 #-3/0.5 #-3/0.5
+                loglogavgslope=(-4., 0.5), #-5/2 #-3/0.5 #-3/0.5
                 flexibility=(1e-3, 1e-16),
                 asperity=(1e-3, 1e-16),)
 
@@ -181,9 +181,9 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 60#25
+n_vi_iterations = 100
 delta = 1e-4
-n_samples = 10
+n_samples = 15
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
