@@ -35,10 +35,10 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-subsample = 'full_o1m4'
+subsample = 'upper_o1m4'
 z2 = 200.
-z1 = 800.
-z3 = 5000.
+z1 = 1000.
+z3 = 8000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
 
@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it100samp15smooth '
+name = 'n:it10samp10smooth '
 seed = 42
 interval = 'pos'
 unc = True
@@ -181,9 +181,9 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 100
+n_vi_iterations = 10
 delta = 1e-4
-n_samples = 15
+n_samples = 25
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
