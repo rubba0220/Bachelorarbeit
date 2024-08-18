@@ -37,8 +37,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 subsample = 'upper_o1m4'
 z2 = 200.
-z1 = 1000.
-z3 = 8000.
+z1 = 1400.
+z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
 
@@ -53,9 +53,9 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it10samp10smooth '
+name = 'n:last '
 seed = 42
-interval = 'pos'
+interval = 'neg'
 unc = True
 
 poly = np.loadtxt(f'data/poly_{subsample}.txt')
@@ -181,9 +181,9 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 10
+n_vi_iterations = 30
 delta = 1e-4
-n_samples = 25
+n_samples = 20
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
