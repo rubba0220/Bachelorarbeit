@@ -36,8 +36,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
 subsample = 'full_o1m3'
-z2 = 200.
-z1 = 1600.
+z2 = 300.
+z1 = 1400.
 z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
