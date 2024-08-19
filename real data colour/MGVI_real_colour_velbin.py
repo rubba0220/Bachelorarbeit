@@ -35,7 +35,7 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-subsample = 'upper_o1m3'
+subsample = 'full_o1m3'
 z2 = 200.
 z1 = 1600.
 z3 = 5000.
