@@ -35,9 +35,9 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-subsample = 'upper_o1m4'
-z2 = 120.
-z1 = 1200.
+subsample = 'lower_o1m4'
+z2 = 200.
+z1 = 950.
 z3 = 5000.
 
 bins = np.loadtxt(f'data/bins_{subsample}.txt')
