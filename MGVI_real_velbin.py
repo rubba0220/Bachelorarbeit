@@ -33,10 +33,8 @@ rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 ''' Domain '''
 am_min = 6.000
 am_max = 7.4
-# am_min = 6.724
-# am_max = 7.400
 z2 = 200.
-z1 = 1200.
+z1 = 1188.
 z3 = 5000.
 
 bins = np.loadtxt(f'real data new intervals/bins_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
@@ -52,9 +50,9 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:it50samp10 ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
-seed = 196 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
-interval = 'pos'
+name = 'n:final ' #['seeda ', 'seedb ', 'seedc ', 'seedd ', 'seede ', seedf]
+seed = 689 #[42, 80, 196, 371, 662, 960] #80 macht Probleme #662  960 zu 42 zu 196
+interval = 'neg'
 
 poly = np.loadtxt(f'real data new intervals/poly_{am_min*1000:.0f}{am_max*1000:.0f}.txt')
 poly_sq = (20./1200., 17.)
@@ -217,9 +215,9 @@ lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2  + lh_rho
 
 ''' Optimization '''
-n_vi_iterations = 50
+n_vi_iterations = 100
 delta = 1e-4
-n_samples = 10
+n_samples = 20
 
 key = random.PRNGKey(seed)
 # key, subkey = random.split(key)
