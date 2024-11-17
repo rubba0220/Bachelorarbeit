@@ -53,12 +53,12 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:f10it30 '
+name = 'n:f10it50 '
 seed = 10
-interval = 'neg'
+interval = 'pos'
 unc = True
 
-n_vi_iterations = 30
+n_vi_iterations = 50
 delta = 1e-4
 n_samples = 20
 
