@@ -1,0 +1,14 @@
+folder structure
+
+- util_working.py
+- folder
+  - query.ipynb       --> query data into 'path/All_candidates.vot'
+  - Data.ipynb        --> take data from 'path/All_candidates.vot' and save it into 'data'
+  - data
+  - MGVI final.ipynb  --> do inference and save the result into 'results'
+  - results
+
+
+
+- path
+  - All_candidates.vot
