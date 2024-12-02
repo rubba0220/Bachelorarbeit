@@ -40,7 +40,7 @@ z2 = 216.
 z1 = 1368.
 z3 = 5000.
 
-bins = np.loadtxt(f'data/bins_{subsample}.txt')
+bins = np.loadtxt(f'data_with_correction/bins_{subsample}.txt')
 
 i2 = np.where(bins<=z2)[0][-1]
 i1 = np.where(bins>=z1)[0][0]
@@ -62,7 +62,7 @@ n_vi_iterations = 50
 delta = 1e-4
 n_samples = 20
 
-poly = np.loadtxt(f'data/poly_{subsample}.txt')
+poly = np.loadtxt(f'data_with_correction/poly_{subsample}.txt')
 
 ''' Correlated Field '''
 dims = (n, )
@@ -81,10 +81,10 @@ correlated_field = cfm.finalize()
 m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
 b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
-''' Data '''
-data = np.loadtxt(f'data/n_{subsample}.txt', dtype='int')
-edata = np.loadtxt(f'data/n_std_{subsample}.txt', dtype='float')/np.loadtxt(f'data/n_mean_{subsample}.txt', dtype='float')
-df_v2 = pd.read_csv(f'data/v2_bin_{subsample}.txt')
+''' data '''
+data = np.loadtxt(f'data_with_correction/n_{subsample}.txt', dtype='int')
+edata = np.loadtxt(f'data_with_correction/n_std_{subsample}.txt', dtype='float')/np.loadtxt(f'data_with_correction/n_mean_{subsample}.txt', dtype='float')
+df_v2 = pd.read_csv(f'data_with_correction/v2_bin_{subsample}.txt')
 z_v2 = jnp.array(df_v2["z"].values)
 vz_vars = jnp.array(df_v2["vz_vars"].values)
 evz_vars = jnp.array(df_v2["evz_vars"].values)
@@ -324,12 +324,12 @@ dfdfo = pd.DataFrame(data_dfo)
 dfdfo.set_index('Run', inplace=True)
 
 ''' Save Results '''
-dfr.to_csv(f'results/rho_bin_{subsample}.csv', mode='a', header=False)
-dfrd.to_csv(f'results/rd_bin_{subsample}.csv', mode='a', header=False)
-dfs.to_csv(f'results/sigma_bin_{subsample}.csv', mode='a', header=False)
-dfsd.to_csv(f'results/sd_bin_{subsample}.csv', mode='a', header=False)
-dfcf.to_csv(f'results/cf_bin_{subsample}.csv', mode='a', header=False)
-dfdfo.to_csv(f'results/dfo_bin_{subsample}.csv', mode='a', header=False)
+dfr.to_csv(f'results_with_correction/rho_bin_{subsample}.csv', mode='a', header=False)
+dfrd.to_csv(f'results_with_correction/rd_bin_{subsample}.csv', mode='a', header=False)
+dfs.to_csv(f'results_with_correction/sigma_bin_{subsample}.csv', mode='a', header=False)
+dfsd.to_csv(f'results_with_correction/sd_bin_{subsample}.csv', mode='a', header=False)
+dfcf.to_csv(f'results_with_correction/cf_bin_{subsample}.csv', mode='a', header=False)
+dfdfo.to_csv(f'results_with_correction/dfo_bin_{subsample}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
 to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
