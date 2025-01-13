@@ -35,7 +35,7 @@ sigma_s = jft.LogNormalPrior(sigmas, esigmas, name="sigma_s", shape=(15,))
 rho_dm = jft.UniformPrior(0., 0.2, name="rho_dm", shape=(1,))
 
 ''' Domain '''
-subsample = 'full_o1m3'
+subsample = 'upper_o1m3'
 z2 = 216.
 z1 = 1368.
 z3 = 5000.
@@ -53,12 +53,12 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:f10it50 '
-seed = 10
-interval = 'pos'
+name = 'n:f42it30 '
+seed = 42
+interval = 'neg'
 unc = True
 
-n_vi_iterations = 50
+n_vi_iterations = 30
 delta = 1e-4
 n_samples = 20
 
