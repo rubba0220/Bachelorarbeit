@@ -63,8 +63,9 @@ delta = 1e-4
 n_samples = 20
 
 poly = np.loadtxt(f'data_with_correction/poly_{subsample}.txt')
+poly_r = np.loadtxt(f'data_with_correction/poly_radial_{subsample}.txt')
 
-''' Correlated Field '''
+''' Correlated Fields '''
 dims = (n, )
                              #old #new #newer(seeds)
 cf_zm = dict(offset_mean=0., offset_std=(0.2, 0.2)) #0.3/0.3 #0.5/0.5 #0.3/0.3
@@ -81,6 +82,17 @@ correlated_field = cfm.finalize()
 m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0.5/0.5 #0.5/0.5 #0.2/0.2
 b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
+
+cfm2 = jft.CorrelatedFieldMaker("cf2")
+cfm2.set_amplitude_total_offset(**cf_zm)
+cfm2.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
+correlated_field2 = cfm2.finalize()
+
+m_poly_r = jft.LogNormalPrior(poly_r[0], 0.2*poly_r[0], name="m_radial", shape=(1,))
+b_poly_r = jft.LogNormalPrior(poly_r[1], 0.2*poly_r[1], name="b_radial", shape=(1,))
+R_sun = 8.26e3 #in pc
+
+
 ''' data '''
 data = np.loadtxt(f'data_with_correction/n_{subsample}.txt', dtype='int')
 edata = np.loadtxt(f'data_with_correction/n_std_{subsample}.txt', dtype='float')/np.loadtxt(f'data_with_correction/n_mean_{subsample}.txt', dtype='float')
@@ -90,6 +102,12 @@ vz_vars = jnp.array(df_v2["vz_vars"].values)
 evz_vars = jnp.array(df_v2["evz_vars"].values)
 vel_pos = np.where(z_v2>=0)
 vel_neg = np.where(z_v2<0)
+df_vrz = pd.read_csv(f'data_with_correction/vrz_bin_{subsample}.txt')
+z_vrz = jnp.array(df_vrz["z"].values)
+vrz_means = jnp.array(df_vrz["vrz_means"].values)
+evrz_means = jnp.array(df_vrz["evrz_means"].values)
+vel_pos_r = np.where(z_vrz>=0)
+vel_neg_r = np.where(z_vrz<0)
 
 if interval == 'pos':
     data = data[i2:i1]
@@ -97,18 +115,27 @@ if interval == 'pos':
     z_v2 = z_v2[vel_pos]
     vz_vars = vz_vars[vel_pos]
     evz_vars = evz_vars[vel_pos]
+    z_vrz = z_vrz[vel_pos_r]
+    vrz_means = vrz_means[vel_pos_r]
+    evrz_means = evrz_means[vel_pos_r]
 elif interval == 'neg':
     data = np.flip(data)[i2:i1]
     edata = np.flip(edata)[i2:i1]
     z_v2 = abs(z_v2[vel_neg])
     vz_vars = vz_vars[vel_neg]
     evz_vars = evz_vars[vel_neg]
+    z_vrz = abs(z_vrz[vel_neg_r])
+    vrz_means = vrz_means[vel_neg_r]
+    evrz_means = evrz_means[vel_neg_r]
 elif interval == 'both':
     data = np.flip(data)[i2:i1] + data[i2:i1]
     edata = np.sqrt(np.flip(edata)[i2:i1]**2 + edata[i2:i1]**2)
     z_v2 = abs(z_v2)
     vz_vars = vz_vars
     evz_vars = evz_vars
+    z_vrz = abs(z_vrz)
+    vrz_means = vrz_means
+    evrz_means = evrz_means
 
 uncertainty = jft.LogNormalPrior(jnp.ones_like(edata), edata, name="uncertainty", shape=(len(edata),))
 
@@ -122,15 +149,18 @@ class ForwardModel(jft.Model):
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
         self.correlated_field = correlated_field
+        self.correlated_field2 = correlated_field2
         self.m_poly = m_poly
         self.b_poly = b_poly
+        self.m_poly_r = m_poly_r
+        self.b_poly_r = b_poly_r
 
         if unc == True:
             self.uncertainty = uncertainty
             
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init | self.uncertainty.init)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init | self.uncertainty.init)
         elif unc == False:
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init)
 
     @jit
     def __call__(self, x):
@@ -147,18 +177,23 @@ class ForwardModel(jft.Model):
             ef = jnp.ones_like(data)
 
         rough_func = (b + m*jnp.linspace(0, z1, n))
+        rough_func_r = (self.b_poly_r(x) + self.m_poly_r(x)*jnp.linspace(0, z1, n))
             
         cf = rough_func * jnp.exp(self.correlated_field(x))
+        cf2 = rough_func_r * jnp.exp(self.correlated_field2(x))
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
             rho_dm = rho_dm[0]
 
-            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n)
+            integral_tilt, domain = util.integrate(cf2/R_sun, cf, jnp.linspace(0, z1, n))
+
+            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n, jnp.array(integral_tilt), jnp.array(domain))
             # sigma_sq = RegularGridInterpolator((zs, ), cf)
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
+            corrz = jax.scipy.interpolate.RegularGridInterpolator((zs, ), cf2)[z_vrz]
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
             m = uz_[-1,1]
@@ -166,22 +201,24 @@ class ForwardModel(jft.Model):
             correction = jnp.sum(params[:,0] * params[:,1]**2/m * jnp.exp(-(m*zs_[-1]+b)/params[:,1]**2))
             surface_density_calc = surface_density_calc + correction
 
-            return integral * ef * norm/jnp.sum(integral), surface_density_calc, sig2, jnp.sum(params[:,0])
-        dfo, sd, sig2, rho = complicated_function(rs, ss, rdm, cf)
-        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2, 'rho': rho})
+            return integral * ef * norm/jnp.sum(integral), surface_density_calc, sig2, jnp.sum(params[:,0]), corrz
+        dfo, sd, sig2, rho, corrz = complicated_function(rs, ss, rdm, cf)
+        return jft.Vector({'dfo': dfo, 'sd': sd, 'sig2': sig2, 'rho': rho, 'corrz': corrz})
 
 fwd = ForwardModel()
 R_dfo = jft.Model(lambda x: x['dfo'], domain=fwd.target)
 R_sd = jft.Model(lambda x: x['sd'], domain=fwd.target)
 R_sig2 = jft.Model(lambda x: x['sig2'], domain=fwd.target)
 R_rho = jft.Model(lambda x: x['rho'], domain=fwd.target)
+R_corrz = jft.Model(lambda x: x['corrz'], domain=fwd.target)
 
 lh_dfo = jft.Poissonian(data).amend(R_dfo)
 lh_sd = jft.Gaussian(49.4, lambda x: 1/(4.6)**2 * x).amend(R_sd)
 lh_sig2 = jft.Gaussian(vz_vars, lambda x: 1/evz_vars**2 * x).amend(R_sig2)
+lh_corrz = jft.Gaussian(vrz_means, lambda x: 1/evrz_means**2 * x).amend(R_corrz)
 # lh_rho = jft.Gaussian(0.0914, lambda x: 1/0.014**2 * x).amend(R_rho)
 
-lh = (lh_dfo + lh_sd + lh_sig2).amend(fwd)
+lh = (lh_dfo + lh_sd + lh_sig2 + lh_corrz).amend(fwd)
 #lh_dfo + lh_sd + lh_sig2 + lh_rho
 
 ''' Optimization '''
@@ -239,11 +276,14 @@ results["rhosdm"] = tuple(rho_dm(s).tolist()[0] for s in samples)
 results["rhodm"] = jft.mean_and_std(results["rhosdm"])
 results["surfds"] = tuple(fwd(s)['sd'].tolist() for s in samples)
 results["surfd"] = jft.mean_and_std(results["surfds"])
-print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
-print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
+# print('slope: ', jft.mean_and_std(tuple(m_poly(s) for s in samples)))
+# print('offset: ', jft.mean_and_std(tuple(b_poly(s) for s in samples)))
 
 Sigma_sq = jft.mean_and_std(tuple((b_poly(s) + m_poly(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field(s)) for s in samples))
 corrfield = jft.mean_and_std(tuple(correlated_field(s) for s in samples))
+
+Correlation = jft.mean_and_std(tuple((b_poly_r(s) + m_poly_r(s)*jnp.linspace(0, z1, n)) * jnp.exp(correlated_field2(s)) for s in samples))
+corrfield2 = jft.mean_and_std(tuple(correlated_field2(s) for s in samples))
 
 dfo = jft.mean_and_std(tuple(fwd(s)["dfo"] for s in samples))
 if unc == True:
@@ -299,6 +339,14 @@ data_cf = {
     "Standard Deviation Sigma_sq": [Sigma_sq[1]],
 }
 
+data_cf2 = {
+    "Run": [name + 'corrfield2 ' + string],
+    "Inferred Value cf": [corrfield2[0]],
+    "Standard Deviation cf": [corrfield2[1]],
+    "Inferred Value Correlation": [Correlation[0]],
+    "Standard Deviation Correlation": [Correlation[1]],
+}
+
 data_dfo = {
     "Run": [name + 'dfo ' + string],
     "Inferred Value ef": [errorfreedom[0]],
@@ -320,6 +368,8 @@ dfsd = pd.DataFrame(data_sd)
 dfsd.set_index('Run', inplace=True)
 dfcf = pd.DataFrame(data_cf)
 dfcf.set_index('Run', inplace=True)
+dfcf2 = pd.DataFrame(data_cf2)
+dfcf2.set_index('Run', inplace=True)
 dfdfo = pd.DataFrame(data_dfo)
 dfdfo.set_index('Run', inplace=True)
 
@@ -329,10 +379,11 @@ dfrd.to_csv(f'results_with_correction/rd_bin_{subsample}.csv', mode='a', header=
 dfs.to_csv(f'results_with_correction/sigma_bin_{subsample}.csv', mode='a', header=False)
 dfsd.to_csv(f'results_with_correction/sd_bin_{subsample}.csv', mode='a', header=False)
 dfcf.to_csv(f'results_with_correction/cf_bin_{subsample}.csv', mode='a', header=False)
+dfcf2.to_csv(f'results_with_correction/cf2_bin_{subsample}.csv', mode='a', header=False)
 dfdfo.to_csv(f'results_with_correction/dfo_bin_{subsample}.csv', mode='a', header=False)
 
 ''' Plot Results cf'''
-to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2')]
+to_plot = [("Data", (vz_vars,evz_vars), 'errorbar'), ("Reconstruction", Sigma_sq, 'plot'), ("Correlated Field", corrfield, 'plot2'), ("Data2", (vrz_means,evrz_means), 'errorbar'), ("Reconstruction2", Correlation, 'plot2')]
 
 fig, axs = plt.subplots(3, 1, figsize=(20, 20))
 grid = jnp.linspace(0, z1, n)
@@ -348,6 +399,7 @@ for ax, v in zip(axs.flat, to_plot):
         ax.errorbar(z_v2, field[0], yerr=field[1], fmt='o', ecolor='r')
         ax.plot(z_v2, poly[0]*z_v2+poly[1])
         ax.sharex(axs[0])
+        ax.errorbar(z_vrz, field[0], yerr=field[1], fmt='o', ecolor='r')
     elif tp == 'plot':
         ax.plot(grid, field[0])
         ax.plot(grid, field[0]+field[1], alpha=0.5)
