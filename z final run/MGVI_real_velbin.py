@@ -192,7 +192,7 @@ class ForwardModel(jft.Model):
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
-            corrz = jax.scipy.interpolate.RegularGridInterpolator((zs, ), cf2)[z_vrz]
+            corrz = jax.scipy.interpolate.RegularGridInterpolator((zs, ), cf2)(z_vrz)
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
             m = uz_[-1,1]
