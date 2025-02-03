@@ -95,7 +95,9 @@ def Solver(rho_dm, params, z1, z3, u3, n3): # u3 is the initial condition on u a
 def integrate(cf_vrz_R, cf_sig2, domain):
     y = cf_vrz_R/cf_sig2
     x = domain
-    integral_tilt = trapezoid(y, x)
+    integral_tilt = jnp.array([0])
+    for i in range(len(list(y))-1):
+        integral_tilt = jnp.append(integral_tilt, trapezoid(y[:2+i], x[:2+i]))
 
     return integral_tilt, domain
 
