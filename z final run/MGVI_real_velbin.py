@@ -53,7 +53,7 @@ bins = bins[i2:i1+1]
 n_bins = int(len(bins)-1)
 
 ''' Run '''
-name = 'n:seit30 '
+name = 'n:se98it30 '
 seed = 98
 interval = 'pos'
 unc = True
@@ -86,10 +86,11 @@ b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 cfm2 = jft.CorrelatedFieldMaker("cf2")
 cfm2.set_amplitude_total_offset(**cf_zm)
 cfm2.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
-correlated_field2 = cfm2.finalize()
+correlated_field2 = cfm2.finalize() 
+''' Überarbeiten !!!'''
 
-m_poly_r = jft.LogNormalPrior(poly_r[0], 0.2*poly_r[0], name="m_radial", shape=(1,))
-b_poly_r = jft.LogNormalPrior(poly_r[1], 0.2*poly_r[1], name="b_radial", shape=(1,))
+m_poly_r = jft.NormalPrior(poly_r[0], 0.2*poly_r[0], name="m_radial", shape=(1,))
+b_poly_r = jft.NormalPrior(poly_r[1], 0.2*poly_r[1], name="b_radial", shape=(1,))
 R_sun = 8.26e3 #in pc
 
 
@@ -169,6 +170,8 @@ class ForwardModel(jft.Model):
         rdm = self.rho_dm(x)
         m = self.m_poly(x)
         b = self.b_poly(x)
+        m_r = self.m_poly_r(x)
+        b_r = self.b_poly_r(x)
 
         if unc == True:
             ef = self.uncertainty(x)
@@ -177,10 +180,11 @@ class ForwardModel(jft.Model):
             ef = jnp.ones_like(data)
 
         rough_func = (b + m*jnp.linspace(0, z1, n))
-        rough_func_r = (self.b_poly_r(x) + self.m_poly_r(x)*jnp.linspace(0, z1, n))
+        rough_func_r = (b_r + m_r*jnp.linspace(0, z1, n))
             
         cf = rough_func * jnp.exp(self.correlated_field(x))
         cf2 = rough_func_r * jnp.exp(self.correlated_field2(x))
+        ''' Überarbeiten !!!'''
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
