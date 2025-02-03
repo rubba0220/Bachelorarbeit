@@ -150,16 +150,13 @@ class ForwardModel(jft.Model):
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
         self.correlated_field = correlated_field
-        self.correlated_field2 = correlated_field2
         self.m_poly = m_poly
         self.b_poly = b_poly
-        self.m_poly_r = m_poly_r
-        self.b_poly_r = b_poly_r
 
         if unc == True:
             self.uncertainty = uncertainty
             
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init | self.uncertainty.init)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init|  self.uncertainty.init)
         elif unc == False:
             super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init)
 
@@ -170,8 +167,6 @@ class ForwardModel(jft.Model):
         rdm = self.rho_dm(x)
         m = self.m_poly(x)
         b = self.b_poly(x)
-        m_r = self.m_poly_r(x)
-        b_r = self.b_poly_r(x)
 
         if unc == True:
             ef = self.uncertainty(x)
@@ -180,10 +175,10 @@ class ForwardModel(jft.Model):
             ef = jnp.ones_like(data)
 
         rough_func = (b + m*jnp.linspace(0, z1, n))
-        rough_func_r = (b_r + m_r*jnp.linspace(0, z1, n))
+        rough_func_r = (b + m*jnp.linspace(0, z1, n))
             
         cf = rough_func * jnp.exp(self.correlated_field(x))
-        cf2 = rough_func_r * jnp.exp(self.correlated_field2(x))
+        cf2 = rough_func_r * jnp.exp(self.correlated_field(x))
         ''' Überarbeiten !!!'''
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
@@ -192,7 +187,7 @@ class ForwardModel(jft.Model):
 
             integral_tilt, domain = util.integrate(cf2/R_sun, cf, jnp.linspace(0, z1, n))
 
-            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n, jnp.array(integral_tilt), jnp.array(domain))
+            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n, integral_tilt, domain)
             # sigma_sq = RegularGridInterpolator((zs, ), cf)
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
