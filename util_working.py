@@ -20,9 +20,8 @@ z0 = 0. # starting point z=0 (galactic midplane)
 u0 = jnp.array([0.,0.]) # initial conditions on gravitational potential [free choice of ground level for condition on u[0] and symmetry condition (reflection at galactic midplane) on u[1]]
 
 f_tilt = lambda rho_dm, params, z, u, integral_tilt, domain: jnp.array([u[1], \
-            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) * jnp.exp(-RegularGridInterpolator(domain, integral_tilt)(jnp.array([[z,]]))[0]) + rho_dm)]) #integral is a correlated field modelling the tilt term in the Jeans equation, z is in 1 pc steps, so use z as index for integral
+            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) * jnp.exp(-RegularGridInterpolator((domain,), integral_tilt)(jnp.array([[z,]]))[0]) + rho_dm)]) #integral is a correlated field modelling the tilt term in the Jeans equation, z is in 1 pc steps, so use z as index for integral
 
-# numerical solution of f from z=0 to z1 with n steps (in analysis realized to be 1pc steps and z1 to be integer)
 @partial(jit, static_argnames=['n']) 
 def diffraxDopri5(rho_dm, params, z1, n, integral_tilt, domain): # routine using Dopri5 from diffrax
 
