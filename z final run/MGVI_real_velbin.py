@@ -187,7 +187,7 @@ class ForwardModel(jft.Model):
 
             integral_tilt, domain = util.integrate(cf2/R_sun, cf, jnp.linspace(0, z1, n))
 
-            uz, zs = util.diffraxDopri5(rho_dm, params, z1, n, integral_tilt, domain)
+            uz, zs = util.eigenerSolverV2(rho_dm, params, z1, n, integral_tilt, domain)
             # sigma_sq = RegularGridInterpolator((zs, ), cf)
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)

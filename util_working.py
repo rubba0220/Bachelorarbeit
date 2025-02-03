@@ -45,21 +45,21 @@ def diffraxDopri5(rho_dm, params, z1, n, integral_tilt, domain): # routine using
     return uz, zs # returns positions of the approximated gravitational potential and [gravitational potential, derivative]-array
 
 @partial(jit, static_argnames=['n'])
-def eigenerSolverV2(rho_dm, params, z1, n): # RK4 routine (used to benchmark Dopri5)
+def eigenerSolverV2(rho_dm, params, z1, n, integral_tilt, domain): # RK4 routine (used to benchmark Dopri5)
     dz = (z1-z0)/(n-1)
 
     # Runge-Kutta 4. order
-    def rk4_step(rho_dm, params, z0, dz, u0, f):
-        k1 = dz * f(rho_dm, params, z0, u0)
-        k2 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k1 / 2)
-        k3 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k2 / 2)
-        k4 = dz * f(rho_dm, params, z0 + dz, u0 + k3)
+    def rk4_step(rho_dm, params, z0, dz, u0, f, integral_tilt, domain):
+        k1 = dz * f(rho_dm, params, z0, u0, integral_tilt, domain)
+        k2 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k1 / 2, integral_tilt, domain)
+        k3 = dz * f(rho_dm, params, z0 + dz / 2, u0 + k2 / 2, integral_tilt, domain)
+        k4 = dz * f(rho_dm, params, z0 + dz, u0 + k3, integral_tilt, domain)
         u1 = u0 + (k1 + 2 * k2 + 2 * k3 + k4) / 6
         return u1
 
     def rk4_step_scan(u, x):
-        return rk4_step(rho_dm, params, x, dz, u, f), \
-            rk4_step(rho_dm, params, x, dz, u, f)
+        return rk4_step(rho_dm, params, x, dz, u, f_tilt, integral_tilt, domain), \
+            rk4_step(rho_dm, params, x, dz, u, f_tilt, integral_tilt, domain)
 
     zs = jnp.linspace(z0, z1, n)
     _, uz = lax.scan(rk4_step_scan, u0, zs[:-1])
@@ -91,12 +91,14 @@ def Solver(rho_dm, params, z1, z3, u3, n3): # u3 is the initial condition on u a
     return uz_, zs_
 
 # calculation of integral from correlated fields
+@partial(jit)
 def integrate(cf_vrz_R, cf_sig2, domain):
     y = cf_vrz_R/cf_sig2
     x = domain
-    integral_tilt = jnp.array([0])
-    for i in range(len(list(y))-1):
-        integral_tilt = jnp.append(integral_tilt, trapezoid(y[:2+i], x[:2+i]))
+    dx = jnp.diff(x)
+    trapezoid_areas = 0.5 * (y[:-1] + y[1:]) * dx
+
+    integral_tilt = jnp.concatenate([jnp.array([0]), jnp.cumsum(trapezoid_areas)])
 
     return integral_tilt, domain
 
