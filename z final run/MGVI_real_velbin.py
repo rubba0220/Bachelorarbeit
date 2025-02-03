@@ -83,15 +83,33 @@ m_poly = jft.LogNormalPrior(poly[0], 0.2*poly[0], name="m_steig", shape=(1,)) #0
 b_poly = jft.LogNormalPrior(poly[1], 0.2*poly[1], name="b_steig", shape=(1,))
 
 
-cfm2 = jft.CorrelatedFieldMaker("cf2")
-cfm2.set_amplitude_total_offset(**cf_zm)
-cfm2.add_fluctuations(dims, distances=1.0, **cf_fl, prefix="ax1", non_parametric_kind="power")
-correlated_field2 = cfm2.finalize() 
+
+
+
+
 ''' Überarbeiten !!!'''
+
+cf_zm2 = dict(offset_mean=0., offset_std=(0.2, 0.2)) #0.3/0.3 #0.5/0.5 #0.3/0.3
+cf_fl2 = dict(   fluctuations=(0.5, 0.3), #1/1 #1/1 #0.5/0.3
+                loglogavgslope=(-4., 0.5), #-5/2 #-3/0.5 #-3/0.5
+                flexibility=(1e-3, 1e-16),
+                asperity=(1e-3, 1e-16),)
+
+cfm2 = jft.CorrelatedFieldMaker("cf2")
+cfm2.set_amplitude_total_offset(**cf_zm2)
+cfm2.add_fluctuations(dims, distances=1.0, **cf_fl2, prefix="ax1", non_parametric_kind="power")
+correlated_field2 = cfm2.finalize() 
 
 m_poly_r = jft.NormalPrior(poly_r[0], 0.2*poly_r[0], name="m_radial", shape=(1,))
 b_poly_r = jft.NormalPrior(poly_r[1], 0.2*poly_r[1], name="b_radial", shape=(1,))
 R_sun = 8.26e3 #in pc
+
+
+
+
+
+
+
 
 
 ''' data '''
@@ -126,7 +144,7 @@ elif interval == 'neg':
     vz_vars = vz_vars[vel_neg]
     evz_vars = evz_vars[vel_neg]
     z_vrz = abs(z_vrz[vel_neg_r])
-    vrz_means = vrz_means[vel_neg_r]
+    vrz_means = -vrz_means[vel_neg_r]
     evrz_means = evrz_means[vel_neg_r]
 elif interval == 'both':
     data = np.flip(data)[i2:i1] + data[i2:i1]
@@ -134,9 +152,9 @@ elif interval == 'both':
     z_v2 = abs(z_v2)
     vz_vars = vz_vars
     evz_vars = evz_vars
-    z_vrz = abs(z_vrz)
-    vrz_means = vrz_means
-    evrz_means = evrz_means
+    vrz_means = np.append(vrz_means[vel_pos_r], -vrz_means[vel_neg_r])
+    evrz_means = np.append(evrz_means[vel_pos_r], evrz_means[vel_neg_r])
+    z_vrz = jnp.append(z_vrz[vel_pos_r], abs(z_vrz[vel_neg_r]))
 
 uncertainty = jft.LogNormalPrior(jnp.ones_like(edata), edata, name="uncertainty", shape=(len(edata),))
 
@@ -150,13 +168,16 @@ class ForwardModel(jft.Model):
         self.sigma_s = sigma_s
         self.rho_dm = rho_dm
         self.correlated_field = correlated_field
+        self.correlated_field2 = correlated_field2
         self.m_poly = m_poly
         self.b_poly = b_poly
+        self.m_poly_r = m_poly_r
+        self.b_poly_r = b_poly_r
 
         if unc == True:
             self.uncertainty = uncertainty
             
-            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.m_poly.init | self.b_poly.init|  self.uncertainty.init)
+            super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init|  self.uncertainty.init)
         elif unc == False:
             super().__init__(init =  self.rho_s.init| self.sigma_s.init | self.rho_dm.init | self.correlated_field.init | self.correlated_field2.init | self.m_poly.init | self.b_poly.init| self.m_poly_r.init | self.b_poly_r.init)
 
@@ -167,6 +188,8 @@ class ForwardModel(jft.Model):
         rdm = self.rho_dm(x)
         m = self.m_poly(x)
         b = self.b_poly(x)
+        m_r = self.m_poly_r(x)
+        b_r = self.b_poly_r(x)
 
         if unc == True:
             ef = self.uncertainty(x)
@@ -175,24 +198,54 @@ class ForwardModel(jft.Model):
             ef = jnp.ones_like(data)
 
         rough_func = (b + m*jnp.linspace(0, z1, n))
-        rough_func_r = (b + m*jnp.linspace(0, z1, n))
+        rough_func_r = (b_r + m_r*jnp.linspace(0, z1, n))
             
         cf = rough_func * jnp.exp(self.correlated_field(x))
-        cf2 = rough_func_r * jnp.exp(self.correlated_field(x))
+
+
+
+
+
         ''' Überarbeiten !!!'''
+        cf2 = rough_func_r * (1+self.correlated_field2(x)+1/6*(self.correlated_field2(x))**3)
+
+
+
+
+
+
 
         def complicated_function(rho_s, sigma_s, rho_dm, cf):
             params = jnp.column_stack((rho_s, sigma_s))
             rho_dm = rho_dm[0]
 
+
+
+
+
             integral_tilt, domain = util.integrate(cf2/R_sun, cf, jnp.linspace(0, z1, n))
 
             uz, zs = util.eigenerSolverV2(rho_dm, params, z1, n, integral_tilt, domain)
+
+
+
+
+
+
             # sigma_sq = RegularGridInterpolator((zs, ), cf)
             # sig2 = sigma_sq(z_v2)
             uz_, zs_ = util.Solver(rho_dm, params, z1, z3, uz[-1], n3)
+
+
+
+
             vdfo_norm_calc, z, sig2 = util.vdfo_norm(z2, z1, zs, uz, n, poly, cf, z_v2)
             corrz = jax.scipy.interpolate.RegularGridInterpolator((zs, ), cf2)(z_vrz)
+
+
+
+
+
             integral, z_borders = util.binning(vdfo_norm_calc, z, z2, z1, n, n_bins)
             surface_density_calc = util.surface_density(params, jnp.append(uz, uz_, axis=0), jnp.append(zs, zs_))
             m = uz_[-1,1]
