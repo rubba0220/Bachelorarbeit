@@ -19,9 +19,12 @@ f = lambda rho_dm, params, z, u: jnp.array([u[1], \
 z0 = 0. # starting point z=0 (galactic midplane)
 u0 = jnp.array([0.,0.]) # initial conditions on gravitational potential [free choice of ground level for condition on u[0] and symmetry condition (reflection at galactic midplane) on u[1]]
 
+f_tilt = lambda rho_dm, params, z, u, integral, domain: jnp.array([u[1], \
+            4*jnp.pi*G * (jnp.sum(params[:,0]*jnp.exp(-u[0]/params[:,1]**2)) * jnp.exp(-RegularGridInterpolator(domain, integral)[z]) + rho_dm)]) #integral is a correlated field modelling the tilt term in the Jeans equation, z is in 1 pc steps, so use z as index for integral
+
 # numerical solution of f from z=0 to z1 with n steps (in analysis realized to be 1pc steps and z1 to be integer)
 @partial(jit, static_argnames=['n']) 
-def diffraxDopri5(rho_dm, params, z1, n): # routine using Dopri5 from diffrax
+def diffraxDopri5(rho_dm, params, z1, n, integral, domain): # routine using Dopri5 from diffrax
 
     vector_field = lambda z, y, args: f(args[0], args[1], z, y) #wrapper function
     term = dif.ODETerm(vector_field)
@@ -87,6 +90,14 @@ def Solver(rho_dm, params, z1, z3, u3, n3): # u3 is the initial condition on u a
     uz_ = sol.ys
 
     return uz_, zs_
+
+# calculation of integral from correlated fields
+def integrate(cf_vrz_R, cf_sig2, domain):
+    y = cf_vrz_R/cf_sig2
+    x = domain
+    integral = trapezoid(y, x)
+
+    return integral
 
 # calculation of tracer density drop off from z2 to z1
 @partial(jit, static_argnames=['n', 'z1', 'z2'])
